@@ -6,6 +6,7 @@
 #define DBOR_ENCODING_HPP_
 
 #include <cstdint>
+#include "Dbor/Type.hpp"
 
 namespace dbor {
 
@@ -40,6 +41,17 @@ namespace dbor {
         };
 
         static std::uint_least8_t sizeInfoFromFirstByte(std::uint8_t b) noexcept;
+
+        static ErrorCode decodeNaturalTokenData(std::uint16_t &value,
+                                                const std::uint8_t *p, std::size_t n,
+                                                std::uint32_t) noexcept;
+        static ErrorCode decodeNaturalTokenData(std::uint32_t &value,
+                                                const std::uint8_t *p, std::size_t n,
+                                                std::uint32_t) noexcept;
+        static ErrorCode decodeNaturalTokenData(std::uint64_t &value,
+                                                const std::uint8_t *p, std::size_t n,
+                                                std::uint32_t offset) noexcept;
+
     };
 
 };

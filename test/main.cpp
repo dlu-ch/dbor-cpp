@@ -6,7 +6,7 @@
 #include "Test.hpp"
 
 
-static void test_encoding() {
+static void testEncodingSizeInfoFromFirstByte() {
     // IntegerValue
     ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0x00));
     ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0x17));
@@ -46,7 +46,140 @@ static void test_encoding() {
     ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0xFF));
 }
 
+
+
+static void testEncodingDecodeNaturalTokenData16() {
+    {
+        std::uint16_t value = 7;
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, nullptr, 0, 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint16_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE, 0xFE };
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint16_t value = 7;
+        uint8_t buffer[] = { 0x12 };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 23));
+        ASSERT_EQUAL(0x13 + 23, value);
+    }
+
+    {
+        std::uint16_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 0));
+        ASSERT_EQUAL(UINT16_MAX, value);
+
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 1));
+        ASSERT_EQUAL(0, value);
+    }
+}
+
+
+static void testEncodingDecodeNaturalTokenData32() {
+    {
+        std::uint32_t value = 7;
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, nullptr, 0, 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint32_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE, 0xFE, 0xFE, 0xFE };
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint32_t value = 7;
+        uint8_t buffer[] = { 0x12, 0x23, 0x34 };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 23));
+        ASSERT_EQUAL(0x352413 + 23, value);
+    }
+
+    {
+        std::uint32_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE, 0xFE, 0xFE };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 0));
+        ASSERT_EQUAL(UINT32_MAX, value);
+
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 1));
+        ASSERT_EQUAL(0, value);
+    }
+}
+
+
+static void testEncodingDecodeNaturalTokenData64() {
+    {
+        std::uint64_t value = 7;
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, nullptr, 0, 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint64_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE };
+        ASSERT_EQUAL(dbor::ErrorCode::OUT_OF_RANGE,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 0));
+        ASSERT_EQUAL(0, value);
+    }
+
+    {
+        std::uint64_t value = 7;
+        uint8_t buffer[] = { 0x12, 0x23, 0x34 };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 23));
+        ASSERT_EQUAL(0x352413ull + 23, value);
+    }
+
+    {
+        std::uint64_t value = 7;
+        uint8_t buffer[] = { 0x12, 0x23, 0x34, 0x56, 0x78 };
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 23));
+        ASSERT_EQUAL(0x7957352413ull + 23, value);
+    }
+
+    {
+        std::uint64_t value = 7;
+        uint8_t buffer[] = { 0xFE, 0xFE, 0xFE, 0xFE };
+
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 1));
+        ASSERT_EQUAL(0x100000000ull, value);
+
+        ASSERT_EQUAL(dbor::ErrorCode::OK,
+                     dbor::Encoding::decodeNaturalTokenData(value, buffer, sizeof(buffer), 8));
+        ASSERT_EQUAL(0x100000007ull, value);
+    }
+}
+
+
+static void testEncoding() {
+    testEncodingSizeInfoFromFirstByte();
+    testEncodingDecodeNaturalTokenData16();
+    testEncodingDecodeNaturalTokenData32();
+    testEncodingDecodeNaturalTokenData64();
+}
+
+
 int main() {
-    test_encoding();
+    testEncoding();
     return 0;
 }
