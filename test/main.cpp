@@ -171,6 +171,35 @@ static void testEncodingDecodeNaturalTokenData64() {
 }
 
 
+static void testEncodingEncodeNaturalTokenData16() {
+    {
+        std::uint16_t value = 0;
+        std::uint8_t buffer[] = { 7 };
+        ASSERT_EQUAL(0, dbor::Encoding::encodeNaturalTokenData(value, buffer, sizeof(buffer)));
+        ASSERT_EQUAL(7, buffer[0]);
+    }
+
+    {
+        std::uint16_t value = 1;
+        std::uint8_t buffer[] = { 7, 7 };
+        ASSERT_EQUAL(1, dbor::Encoding::encodeNaturalTokenData(value, buffer, sizeof(buffer) - 1u));
+        ASSERT_EQUAL(0, buffer[0]);
+        ASSERT_EQUAL(7, buffer[1]);
+        ASSERT_EQUAL(0, dbor::Encoding::encodeNaturalTokenData(value, buffer, sizeof(buffer) - 2u));
+    }
+
+    {
+        std::uint16_t value = 0x1234ul;
+        std::uint8_t buffer[] = { 7, 7, 7 };
+        ASSERT_EQUAL(2, dbor::Encoding::encodeNaturalTokenData(value, buffer, sizeof(buffer) - 1u));
+        ASSERT_EQUAL(0x33, buffer[0]);
+        ASSERT_EQUAL(0x11, buffer[1]);
+        ASSERT_EQUAL(7, buffer[2]);
+        ASSERT_EQUAL(0, dbor::Encoding::encodeNaturalTokenData(value, buffer, sizeof(buffer) - 2u));
+    }
+}
+
+
 static void testEncodingEncodeNaturalTokenData32() {
     {
         std::uint32_t value = 0;
@@ -297,6 +326,7 @@ static void testEncoding() {
     testEncodingDecodeNaturalTokenData32();
     testEncodingDecodeNaturalTokenData64();
 
+    testEncodingEncodeNaturalTokenData16();
     testEncodingEncodeNaturalTokenData32();
     testEncodingEncodeNaturalTokenData64();
 }

@@ -46,10 +46,7 @@ class Application(dlb.ex.Tool):
         await context.execute_helper(self.EXECUTABLE)
 
 
-with dlb.ex.Context():
-    source_directory = Path('src/')
-    test_directory = Path('test/')
-    output_directory = Path('build/out/')
+def build_with_definitions(source_directory, test_directory, output_directory, Compiler):
     generated_source_directory = output_directory / 'Dbor/Generated/'
     generated_test_directory = output_directory / 'test/generated/'
 
@@ -86,4 +83,29 @@ with dlb.ex.Context():
         Application().start(force_redo=True)
 
 
-dlb.di.inform(f'test application size: {application_file.native.raw.stat().st_size} B')
+with dlb.ex.Context():
+    source_directory = Path('src/')
+    test_directory = Path('test/')
+    output_directory = Path('build/out/')
+
+    class Compiler32b(Compiler):
+        DEFINITIONS = {'DBOR_HAS_FAST_64BIT_ARITH': 0}
+
+    class Compiler64b(Compiler):
+        DEFINITIONS = {'DBOR_HAS_FAST_64BIT_ARITH': 1}
+
+    compiler_by_configuration = {
+        '32b': Compiler32b,
+        '64b': Compiler64b
+    }
+
+    for configuration in sorted(compiler_by_configuration):
+        with dlb.di.Cluster(f'configuration {configuration!r}'):
+            build_with_definitions(
+                source_directory=Path('src/'),
+                test_directory=Path('test/'),
+                output_directory=Path('build/out/') / f'{configuration}/',
+                Compiler=compiler_by_configuration[configuration]
+            )
+
+dlb.di.inform(f'complete (all tests passed)')
