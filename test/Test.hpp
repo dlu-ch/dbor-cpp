@@ -16,7 +16,7 @@ struct TestFailed {
 
 #define ASSERT_EQUAL(expected, actual) \
     while ((expected) != (actual)) { \
-        std::cout << "error: test failed on line " << __LINE__ << std::endl; \
+        std::cout << __FILE__ << ":" << __LINE__ << ":error: test failed" << std::endl; \
         throw TestFailed(__LINE__); \
     }
 
