@@ -52,6 +52,10 @@ namespace dbor {
                                                 const std::uint8_t *p, std::size_t n,
                                                 std::uint32_t offset) noexcept;
 
+        static std::size_t encodeNaturalTokenData(const std::uint32_t &value,
+                                                  std::uint8_t *p, std::size_t capacity) noexcept;
+        static std::size_t encodeNaturalTokenData(const std::uint64_t &value,
+                                                  std::uint8_t *p, std::size_t capacity) noexcept;
     };
 
 };

@@ -51,12 +51,11 @@ std::uint_least8_t Encoding::sizeInfoFromFirstByte(std::uint8_t b) noexcept {
 }
 
 
-static std::uint32_t decodeUint32Le(const std::uint8_t *p, std::size_t n) noexcept {
-    // 0 < n <= 4
-    uint32_t v = 0;
-    const uint8_t *q = p + (n - 1);
-    for (std::size_t i = n; i > 0; i--) {
-        v = (v << 8u) | *q--;
+static std::uint_fast32_t readUintFast32Le(const std::uint8_t *p, std::size_t n) noexcept {
+    uint32_t v = 0u;
+    p += n - 1u;
+    while (n-- > 0u) {
+        v = (v << 8u) | *p--;
     }
     return v;
 }
@@ -69,7 +68,7 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint16_t &value,
     std::uint32_t v;
     ErrorCode e = decodeNaturalTokenData(v, p, n, offset);
     if (v > UINT16_MAX) {
-        v = 0;
+        v = 0u;
         e = ErrorCode::OUT_OF_RANGE;
     }
     value = v;
@@ -83,14 +82,15 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint32_t &value,
 {
     // Return v + offset with <p[0], ... , p[n - 1]> = NaturalToken(v)
     // for 0 < n <= 4 and offset <= 0xFEFEFEFE.
+    static constexpr std::uint_fast32_t ONE_PER_BYTE = 0x01010101ull;
 
     if (n - 1u > 4u - 1u) {
         value = 0u;
         return ErrorCode::OUT_OF_RANGE;
     }
 
-    uint32_t v = decodeUint32Le(p, n);  // 0 < n <= sizeof(value)
-    const uint32_t d = (0x01010101u >> (8u * (4u - n))) + offset;
+    uint_fast32_t v = readUintFast32Le(p, n);  // 0 < n <= sizeof(value)
+    const uint_fast32_t d = (ONE_PER_BYTE >> (8u * (4u - n))) + offset;
     if (v <= UINT32_MAX - d) {
         value = v + d;
         return ErrorCode::OK;
@@ -107,18 +107,18 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
 {
     // Return v + offset with <p[0], ... , p[n - 1]> = NaturalToken(v)
     // for 0 < n <= 8 and offset <= 0xFEFEFEFE.
-    static constexpr std::uint32_t ONE_PER_BYTE = 0x01010101u;
+    static constexpr std::uint_fast32_t ONE_PER_BYTE = 0x01010101ull;
 
     value = 0u;
     if (n - 1u > 8u - 1u)
         return ErrorCode::OUT_OF_RANGE;
 
     // 0 < n <= 8
-    uint32_t high;
-    uint32_t low;
+    uint_fast32_t high;
+    uint_fast32_t low;
     if (n > 4u) {
-        high = decodeUint32Le(p + 4u, n - 4u);
-        low = decodeUint32Le(p, 4u);
+        high = readUintFast32Le(p + 4u, n - 4u);
+        low = readUintFast32Le(p, 4u);
         uint32_t dHigh = ONE_PER_BYTE >> (8u * (8u - n));
         uint32_t dLow = ONE_PER_BYTE + offset;
         if (low > UINT32_MAX - dLow)
@@ -129,7 +129,7 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
         high += dHigh;
     } else {
         high = 0u;
-        low = decodeUint32Le(p, n);
+        low = readUintFast32Le(p, n);
         const uint32_t dLow = (ONE_PER_BYTE >> (8u * (4u - n))) + offset;
         if (low > UINT32_MAX - dLow)
             high++;
@@ -138,4 +138,76 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
 
     value = (static_cast<std::uint64_t>(high) << 32u) | low;
     return ErrorCode::OK;
+}
+
+
+std::size_t Encoding::encodeNaturalTokenData(const std::uint32_t &value,
+                                             std::uint8_t *p, std::size_t capacity) noexcept
+{
+    std::uint32_t v = value;
+    if (v == 0)
+        return 0;
+
+    std::size_t n = 0;
+    std::uint32_t encodedValueBe = 0;
+    do {
+        n++;
+        encodedValueBe = (encodedValueBe << 8u) + (--v & 0xFF);
+        v >>= 8u;
+    } while (v);
+
+    if (n > capacity)
+        return 0;
+
+    p += n - 1u;  // 0 < n <= capacity
+    for (std::size_t i = n; i > 0; i--) {
+        *p-- = encodedValueBe;
+        encodedValueBe >>= 8u;
+    }
+
+    return n;
+}
+
+
+std::size_t Encoding::encodeNaturalTokenData(const std::uint64_t &value,
+                                             std::uint8_t *p, std::size_t capacity) noexcept
+{
+    static constexpr std::uint32_t ONE_PER_BYTE = 0x01010101ull;
+
+    std::uint32_t low = value;
+    std::uint32_t high = value >> 32u;
+
+    if (!high)
+        return encodeNaturalTokenData(low, p, capacity);
+
+    // n will be >= 4
+
+    std::uint32_t encodedLowLe = low - ONE_PER_BYTE;
+    if (low < ONE_PER_BYTE)
+        high--;
+
+    std::size_t nHigh = 0;
+    std::uint32_t encodedHighBe = 0;
+    while (high) {
+        nHigh++;
+        encodedHighBe = (encodedHighBe << 8u) + (--high & 0xFF);
+        high >>= 8u;
+    }
+
+    std::size_t n = nHigh + 4u;
+    if (n > capacity)
+        return 0;
+
+    for (std::size_t i = 4u; i > 0; i--) {
+        *p++ = encodedLowLe;
+        encodedLowLe >>= 8u;
+    }
+
+    p += nHigh - 1u;
+    for (std::size_t i = nHigh; i > 0; i--) {
+        *p-- = encodedHighBe;
+        encodedHighBe >>= 8u;
+    }
+
+    return n;  // 0 < n <= 8
 }

@@ -15,7 +15,7 @@ namespace dbor {
         OUT_OF_RANGE,
         NO_OBJECT,
         INCOMPATIBLE,
-        ILLFORMED,
+        ILLFORMED
     };
 
 };
