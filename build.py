@@ -11,6 +11,7 @@
 
 import sys
 import os
+from typing import Iterable, Union
 
 import dlb.di
 import dlb.fs
@@ -30,25 +31,19 @@ class Path(dlb.fs.PosixPath, dlb.fs.WindowsPath, dlb.fs.NoSpacePath):
 class Compiler(dlb_contrib.gcc.CplusplusCompilerGcc):
     DIALECT = 'c++11'
 
+    def get_compile_arguments(self) -> Iterable[Union[str, dlb.fs.Path, dlb.fs.Path.Native]]:
+        return ['-g']
+
 
 class Linker(dlb_contrib.gcc.CplusplusLinkerGcc):
     pass
 
 
-# TODO move to dlb_contrib
-class GenerateIncludeStub(dlb.ex.Tool):
-    included_files = dlb.ex.input.RegularFile[1:]()  # TODO make sure it contains no " and only 7 bit ASCII
-    output_file = dlb.ex.output.RegularFile()
-
-    PATH_COMPONENTS_TO_STRIP = 0  # number of leading path component to strip for #include
+class Application(dlb.ex.Tool):
+    EXECUTABLE = '@application'
 
     async def redo(self, result, context):
-        with context.temporary() as output_file:
-            with open(output_file.native, 'w') as f:
-                for p in self.included_files:
-                    p = p[self.PATH_COMPONENTS_TO_STRIP:]
-                    f.write('#include "{}"\n'.format(p.as_string()))
-            context.replace_output(result.output_file, output_file)
+        await context.execute_helper(self.EXECUTABLE)
 
 
 with dlb.ex.Context():
@@ -58,44 +53,37 @@ with dlb.ex.Context():
     generated_source_directory = output_directory / 'Dbor/Generated/'
     generated_test_directory = output_directory / 'test/generated/'
 
+    with dlb.di.Cluster('compile each .hpp'), dlb.ex.Context():
+        for p in source_directory.iterdir(name_filter=r'.+\.hpp',
+                                          recurse_name_filter='', is_dir=False):
+            Compiler(
+                source_files=[p],
+                object_files=[output_directory / p.with_appended_suffix('.ot')],
+                include_search_directories=[source_directory]
+            ).start()
+
     with dlb.di.Cluster('compile'), dlb.ex.Context():
+        source_files = source_directory.list(
+            name_filter=r'.+\.cpp', recurse_name_filter='', is_dir=False)
+        source_files += test_directory.list(
+            name_filter=r'.+\.cpp', recurse_name_filter='', is_dir=False)
         compile_results = [
             Compiler(
                 source_files=[p],
                 object_files=[output_directory / p.with_appended_suffix('.o')],
                 include_search_directories=[source_directory]
             ).start()
-            for p in source_directory.iterdir(name_filter=r'.+\.cpp',
-                                              recurse_name_filter='', is_dir=False)
-        ] + [
-            Compiler(
-                source_files=[p],
-                object_files=[output_directory / p.with_appended_suffix('.o')],
-                include_search_directories=[source_directory]
-            ).start()
-            for p in test_directory.iterdir(name_filter=r'.+\.cpp',
-                                            recurse_name_filter='', is_dir=False)
+            for p in source_files
         ]
-
-    with dlb.di.Cluster('check all .hpp'), dlb.ex.Context():
-        class GenerateIncludeStub(GenerateIncludeStub):
-            PATH_COMPONENTS_TO_STRIP = len(source_directory.components) - 1
-
-        for p in source_directory.iterdir_r(name_filter=r'.+\.hpp',
-                                            recurse_name_filter='', is_dir=False):
-            include_stub_file = GenerateIncludeStub(
-                included_files=[source_directory / p],
-                output_file=(generated_test_directory / p).with_appended_suffix('.cpp')
-            ).start().output_file
-            Compiler(
-                source_files=[include_stub_file],
-                object_files=[include_stub_file.with_appended_suffix('.o')],
-                include_search_directories=[source_directory]
-            ).start()
 
     with dlb.di.Cluster('link'), dlb.ex.Context():
         application_file = Linker(
             object_and_archive_files=[r.object_files[0] for r in compile_results],
             linked_file=output_directory / 'tester').start().linked_file
+
+    with dlb.di.Cluster('test'), dlb.ex.Context():
+        dlb.ex.Context.active.helper[Application.EXECUTABLE] = application_file
+        Application().start(force_redo=True)
+
 
 dlb.di.inform(f'test application size: {application_file.native.raw.stat().st_size} B')
