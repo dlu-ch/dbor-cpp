@@ -6,46 +6,198 @@
 #include "Test.hpp"
 
 
-static void testEncodingSizeInfoFromFirstByte() {
+static void testEncodingSizeOfTokenFromFirstByte() {
     // IntegerValue
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0x00));
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0x17));
-    ASSERT_EQUAL(2, dbor::Encoding::sizeInfoFromFirstByte(0x18));
-    ASSERT_EQUAL(9, dbor::Encoding::sizeInfoFromFirstByte(0x1F));
-    ASSERT_EQUAL(9, dbor::Encoding::sizeInfoFromFirstByte(0x3F));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x00));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x17));
+    ASSERT_EQUAL(2, dbor::Encoding::sizeOfTokenFromFirstByte(0x18));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0x1F));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0x3F));
 
     // ByteStringValue
-    ASSERT_EQUAL(1 + 0, dbor::Encoding::sizeInfoFromFirstByte(0x40));
-    ASSERT_EQUAL(1 + 23, dbor::Encoding::sizeInfoFromFirstByte(0x57));
-    ASSERT_EQUAL((2 + 23) | 0x40, dbor::Encoding::sizeInfoFromFirstByte(0x58));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x40));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x57));
+    ASSERT_EQUAL(2, dbor::Encoding::sizeOfTokenFromFirstByte(0x58));
 
     // DictionaryValue
-    ASSERT_EQUAL(1 + 0, dbor::Encoding::sizeInfoFromFirstByte(0xA0));
-    ASSERT_EQUAL((9 + 23) | 0x40, dbor::Encoding::sizeInfoFromFirstByte(0xBF));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xA0));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0xBF));
 
     // AllocatedValue
-    ASSERT_EQUAL(2 | 0x40, dbor::Encoding::sizeInfoFromFirstByte(0xC0));
-    ASSERT_EQUAL(9 | 0x40, dbor::Encoding::sizeInfoFromFirstByte(0xC7));
+    ASSERT_EQUAL(2, dbor::Encoding::sizeOfTokenFromFirstByte(0xC0));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0xC7));
 
     // BinaryRationalValue
-    ASSERT_EQUAL(2, dbor::Encoding::sizeInfoFromFirstByte(0xC8));
-    ASSERT_EQUAL(9, dbor::Encoding::sizeInfoFromFirstByte(0xCF));
+    ASSERT_EQUAL(2, dbor::Encoding::sizeOfTokenFromFirstByte(0xC8));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0xCF));
 
     // DecimalRationalValue(..., e) with |e| > 8
-    ASSERT_EQUAL(2 | 0x80, dbor::Encoding::sizeInfoFromFirstByte(0xD0));
-    ASSERT_EQUAL(9 | 0x80, dbor::Encoding::sizeInfoFromFirstByte(0xDF));
+    ASSERT_EQUAL(2, dbor::Encoding::sizeOfTokenFromFirstByte(0xD0));
+    ASSERT_EQUAL(9, dbor::Encoding::sizeOfTokenFromFirstByte(0xDF));
 
     // DecimalRationalValue(..., e) with |e| <= 8
-    ASSERT_EQUAL(1 | 0x80, dbor::Encoding::sizeInfoFromFirstByte(0xE0));
-    ASSERT_EQUAL(1 | 0x80, dbor::Encoding::sizeInfoFromFirstByte(0xEF));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xE0));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xEF));
 
     // MinimalToken
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0xFC));
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0xFD));
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0xFE));
-    ASSERT_EQUAL(1, dbor::Encoding::sizeInfoFromFirstByte(0xFF));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xFC));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xFD));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xFE));
+    ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0xFF));
 }
 
+
+static void testEncodingSizeOfValueIn() {
+    ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(nullptr, 0u));
+
+    // IntegerValue
+    {
+        uint8_t buffer[] = { 0x00 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x1F };
+        ASSERT_EQUAL(9, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x37 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x38 };
+        ASSERT_EQUAL(2, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // ByteStringValue
+    {
+        uint8_t buffer[] = { 0x40 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x57 };
+        ASSERT_EQUAL(1 + 23, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // Utf8StringValue
+    {
+        uint8_t buffer[] = { 0x77 };
+        ASSERT_EQUAL(1 + 23, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x78, 0x00 };
+        ASSERT_EQUAL(2 + 24, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+    }
+    {
+        uint8_t buffer[] = { 0x7F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // SequenceValue
+    {
+        uint8_t buffer[] = { 0x80 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x97 };
+        ASSERT_EQUAL(1 + 23, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0x98, 0xFF };
+        ASSERT_EQUAL(2 + 24 + 255, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+    }
+
+    // DictionaryValue
+    {
+        uint8_t buffer[] = { 0xA0 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xB7 };
+        ASSERT_EQUAL(1 + 23, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xB9, 0x00, 0x00 };
+        ASSERT_EQUAL(3 + 24 + 256, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+    }
+
+    // AllocatedValue
+    {
+        uint8_t buffer[] = { 0xC0, 0x00 };
+        ASSERT_EQUAL(2 + 1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+    }
+    {
+        uint8_t buffer[] = { 0xC0, 0xFF };
+        ASSERT_EQUAL(2 + 256, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // BinaryRationalValue
+    {
+        uint8_t buffer[] = { 0xC8 };
+        ASSERT_EQUAL(2, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xCF };
+        ASSERT_EQUAL(9, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // DecimalRationalValue 1101xyyy
+    {
+        uint8_t buffer[] = { 0xD0, 0xFF, 0x00 };
+        ASSERT_EQUAL(3, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 2));
+    }
+    {
+        uint8_t buffer[] = { 0xD1, 0xFF, 0x00, 0x38 };
+        ASSERT_EQUAL(3 + 2, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 2));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 3));
+    }
+    {
+        uint8_t buffer[] = { 0xD1, 0xFF, 0x00, 0xFF };  // ill-formed
+        ASSERT_EQUAL(3, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xE0, 0x3F };
+        ASSERT_EQUAL(1 + 9, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+        ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer) - 1));
+    }
+    {
+        uint8_t buffer[] = { 0xEF, 0xFF };  // ill-formed
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // NumberlikeValue
+    {
+        uint8_t buffer[] = { 0xFC };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xFD };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+    {
+        uint8_t buffer[] = { 0xFE };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // NoneValue
+    {
+        uint8_t buffer[] = { 0xFF };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+
+    // reserved
+    {
+        uint8_t buffer[] = { 0xF0 };
+        ASSERT_EQUAL(1, dbor::Encoding::sizeOfValueIn(buffer, sizeof(buffer)));
+    }
+}
 
 
 static void testEncodingDecodeNaturalTokenData16() {
@@ -320,7 +472,8 @@ static void testEncodingEncodeNaturalTokenData64() {
 
 
 static void testEncoding() {
-    testEncodingSizeInfoFromFirstByte();
+    testEncodingSizeOfTokenFromFirstByte();
+    testEncodingSizeOfValueIn();
 
     testEncodingDecodeNaturalTokenData16();
     testEncodingDecodeNaturalTokenData32();
