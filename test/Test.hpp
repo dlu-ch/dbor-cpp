@@ -21,4 +21,8 @@ struct TestFailed {
     }
 
 
+#define ASSERT_TRUE(actual) \
+    ASSERT_EQUAL(true, actual)
+
+
 #endif  // TEST_HPP_
