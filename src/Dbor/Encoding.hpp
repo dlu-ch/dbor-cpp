@@ -6,7 +6,6 @@
 #define DBOR_ENCODING_HPP_
 
 #include <cstdint>
-#include "Dbor/Type.hpp"
 
 namespace dbor {
 
@@ -43,15 +42,15 @@ namespace dbor {
         static std::size_t sizeOfValueIn(const std::uint8_t *p, std::size_t capacity) noexcept;
 
 
-        static ErrorCode decodeNaturalTokenData(std::uint16_t &value,
-                                                const std::uint8_t *p, std::size_t n,
-                                                std::uint32_t offset) noexcept;
-        static ErrorCode decodeNaturalTokenData(std::uint32_t &value,
-                                                const std::uint8_t *p, std::size_t n,
-                                                std::uint32_t offset) noexcept;
-        static ErrorCode decodeNaturalTokenData(std::uint64_t &value,
-                                                const std::uint8_t *p, std::size_t n,
-                                                std::uint32_t offset) noexcept;
+        static bool decodeNaturalTokenData(std::uint16_t &value,
+                                           const std::uint8_t *p, std::size_t n,
+                                           std::uint32_t offset) noexcept;
+        static bool decodeNaturalTokenData(std::uint32_t &value,
+                                           const std::uint8_t *p, std::size_t n,
+                                           std::uint32_t offset) noexcept;
+        static bool decodeNaturalTokenData(std::uint64_t &value,
+                                           const std::uint8_t *p, std::size_t n,
+                                           std::uint32_t offset) noexcept;
 
         static std::size_t encodeNaturalTokenData(const std::uint16_t &value,
                                                   std::uint8_t *p, std::size_t capacity) noexcept;
@@ -64,6 +63,7 @@ namespace dbor {
 };
 
 
+// Inline implementations ---
 
 inline std::size_t dbor::Encoding::sizeOfTokenFromFirstByte(std::uint8_t b) noexcept {
     // 000xxxxx  IntegerValue

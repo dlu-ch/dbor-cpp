@@ -3,24 +3,24 @@
 // Copyright (C) 2020 Daniel Lutz <dlu-ch@users.noreply.github.com>
 
 
-dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint32_t &value,
-                                                 const std::uint8_t *p, std::size_t n,
-                                                 std::uint32_t offset) noexcept
+bool Encoding::decodeNaturalTokenData(std::uint32_t &value,
+                                      const std::uint8_t *p, std::size_t n,
+                                      std::uint32_t offset) noexcept
 {
     std::uint64_t v;
-    ErrorCode e = decodeNaturalTokenData(v, p, n, offset);
+    bool isOk = decodeNaturalTokenData(v, p, n, offset);
     if (v > UINT32_MAX) {
         v = 0u;
-        e = ErrorCode::OUT_OF_RANGE;
+        isOk = false;
     }
     value = v;
-    return e;
+    return isOk;
 }
 
 
-dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
-                                                 const std::uint8_t *p, std::size_t n,
-                                                 std::uint32_t offset) noexcept
+bool Encoding::decodeNaturalTokenData(std::uint64_t &value,
+                                      const std::uint8_t *p, std::size_t n,
+                                      std::uint32_t offset) noexcept
 {
     return impl::decodeNaturalTokenData<std::uint64_t, std::uint_fast64_t>(
         value, p, n, offset);

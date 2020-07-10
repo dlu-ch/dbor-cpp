@@ -40,7 +40,7 @@ std::size_t Encoding::sizeOfValueIn(const std::uint8_t *p, std::size_t capacity)
         }
 
         std::size_t n;
-        if (sizeOfFirst <= capacity && decodeNaturalTokenData(n, &p[1], sizeOfFirst - 1u, offset) == ErrorCode::OK)
+        if (sizeOfFirst <= capacity && decodeNaturalTokenData(n, &p[1], sizeOfFirst - 1u, offset))
             return n;
 
         return 0u;  // too large for std::size_t
@@ -58,18 +58,18 @@ std::size_t Encoding::sizeOfValueIn(const std::uint8_t *p, std::size_t capacity)
 }
 
 
-dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint16_t &value,
-                                                 const std::uint8_t *p, std::size_t n,
-                                                 std::uint32_t offset) noexcept
+bool Encoding::decodeNaturalTokenData(std::uint16_t &value,
+                                      const std::uint8_t *p, std::size_t n,
+                                      std::uint32_t offset) noexcept
 {
     std::uint32_t v;
-    ErrorCode e = decodeNaturalTokenData(v, p, n, offset);
+    bool isOk = decodeNaturalTokenData(v, p, n, offset);
     if (v > UINT16_MAX) {
         v = 0u;
-        e = ErrorCode::OUT_OF_RANGE;
+        isOk = false;
     }
     value = v;
-    return e;
+    return isOk;
 }
 
 
@@ -90,16 +90,16 @@ namespace dbor::impl {
         return v;
     }
 
-    // If n = 0 or n > sizeof(value): Returns ErrorCode::OUT_OF_RANGE and value = 0.
+    // If n = 0 or n > sizeof(value): Returns false and value = 0.
     // If 0 < n <= sizeof(value) and offset <= 0xFEFEFEFE:
-    //    a) Returns ErrorCode::OK and value = v + offset,
+    //    a) Returns true and value = v + offset,
     //       where <b, p[0], ... , p[n - 1]> = NaturalToken(v),
     //       if v + offset <= std::numeric_limits<T>::max().
-    //    b) Returns ErrorCode::OUT_OF_RANGE and value = 0 otherwise.
+    //    b) Returns false and value = 0 otherwise.
     // T: uint32_t or uint64_t, F: uint_fast32_t or uint_fast64_t
     template<typename T, typename F=T>
-    dbor::ErrorCode decodeNaturalTokenData(T &value, const std::uint8_t *p, std::size_t n,
-                                           std::uint32_t offset) noexcept
+    bool decodeNaturalTokenData(T &value, const std::uint8_t *p, std::size_t n,
+                                std::uint32_t offset) noexcept
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -112,18 +112,18 @@ namespace dbor::impl {
 
         if (n - 1u > sizeof(value) - 1u) {
             value = 0u;
-            return ErrorCode::OUT_OF_RANGE;
+            return false;
         }
 
         F v = readUintLeFromBuffer<F>(p, n);  // 0 < n <= sizeof(value)
         const F d = (ONE_PER_BYTE >> (8u * (sizeof(value) - n))) + offset;
         if (v <= std::numeric_limits<T>::max() - d) {
             value = v + d;
-            return ErrorCode::OK;
+            return true;
         }
 
         value = 0u;
-        return ErrorCode::OUT_OF_RANGE;
+        return false;
     }
 
 }

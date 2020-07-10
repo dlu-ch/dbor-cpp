@@ -3,23 +3,23 @@
 // Copyright (C) 2020 Daniel Lutz <dlu-ch@users.noreply.github.com>
 
 
-dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint32_t &value,
-                                                 const std::uint8_t *p, std::size_t n,
-                                                 std::uint32_t offset) noexcept
+bool Encoding::decodeNaturalTokenData(std::uint32_t &value,
+                                      const std::uint8_t *p, std::size_t n,
+                                      std::uint32_t offset) noexcept
 {
     return impl::decodeNaturalTokenData<std::uint32_t, std::uint_fast32_t>(value, p, n, offset);
 }
 
 
-dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
-                                                 const std::uint8_t *p, std::size_t n,
-                                                 std::uint32_t offset) noexcept
+bool Encoding::decodeNaturalTokenData(std::uint64_t &value,
+                                      const std::uint8_t *p, std::size_t n,
+                                      std::uint32_t offset) noexcept
 {
     static constexpr std::uint_fast32_t ONE_PER_BYTE = 0x01010101ull;
 
     value = 0u;
     if (n - 1u > 8u - 1u)
-        return ErrorCode::OUT_OF_RANGE;
+        return false;
 
     // 0 < n <= 8
     uint_fast32_t high;
@@ -33,7 +33,7 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
             dHigh++;
         low += dLow;
         if (high > UINT32_MAX - dHigh)
-            return ErrorCode::OUT_OF_RANGE;
+            return false;
         high += dHigh;
     } else {
         high = 0u;
@@ -45,7 +45,7 @@ dbor::ErrorCode Encoding::decodeNaturalTokenData(std::uint64_t &value,
     }
 
     value = (static_cast<std::uint64_t>(high) << 32u) | low;
-    return ErrorCode::OK;
+    return true;
 }
 
 
