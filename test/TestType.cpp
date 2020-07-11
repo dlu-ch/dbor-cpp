@@ -8,42 +8,42 @@
 
 
 static void testErrorCodeTestOperations() {
-    ASSERT_TRUE(isOk(dbor::ErrorCodes::OK_PRECISE));
-    ASSERT_TRUE(!isOk(dbor::ErrorCodes::OK_IMPRECISE));
+    ASSERT_TRUE(isOk(dbor::ResultCodes::OK));
+    ASSERT_TRUE(!isOk(dbor::ResultCodes::APPROX_PRECISION));
 
-    ASSERT_TRUE(isOkExcept(dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED,
-                           dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED));
-    ASSERT_TRUE(!isOkExcept(dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED,
-                            dbor::ErrorCodes::ILLFORMED));
-    ASSERT_TRUE(!isOkExcept(dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED,
-                            dbor::ErrorCodes::OUT_OF_RANGE));
+    ASSERT_TRUE(isOkExcept(dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED,
+                           dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED));
+    ASSERT_TRUE(!isOkExcept(dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED,
+                            dbor::ResultCodes::ILLFORMED));
+    ASSERT_TRUE(!isOkExcept(dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED,
+                            dbor::ResultCodes::APPROX_RANGE));
 
-    ASSERT_TRUE(isApprox(dbor::ErrorCodes::OK_IMPRECISE));
-    ASSERT_TRUE(isApprox(dbor::ErrorCodes::OUT_OF_RANGE));
-    ASSERT_TRUE(!isApprox(dbor::ErrorCodes::OK_PRECISE));
+    ASSERT_TRUE(isApprox(dbor::ResultCodes::APPROX_PRECISION));
+    ASSERT_TRUE(isApprox(dbor::ResultCodes::APPROX_RANGE));
+    ASSERT_TRUE(!isApprox(dbor::ResultCodes::OK));
 }
 
 
 static void testErrorCodeManipulations() {
-    dbor::ErrorCodes e =
-        dbor::ErrorCodes::NO_OBJECT
-        << dbor::ErrorCodes::OUT_OF_RANGE
-        << dbor::ErrorCodes::INCOMPATIBLE;
+    dbor::ResultCodes e =
+        dbor::ResultCodes::NO_OBJECT
+        << dbor::ResultCodes::APPROX_RANGE
+        << dbor::ResultCodes::INCOMPATIBLE;
 
     ASSERT_TRUE(!isOk(e));
 
-    dbor::ErrorCodes e2 = e;
-    e2 -= dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT << dbor::ErrorCodes::INCOMPATIBLE, e2);
-    e2 -= dbor::ErrorCodes::OUT_OF_RANGE;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT << dbor::ErrorCodes::INCOMPATIBLE, e2);
+    dbor::ResultCodes e2 = e;
+    e2 -= dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED;
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT << dbor::ResultCodes::INCOMPATIBLE, e2);
+    e2 -= dbor::ResultCodes::APPROX_RANGE;
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT << dbor::ResultCodes::INCOMPATIBLE, e2);
 
     e2 = e;
-    e2 &= dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, e2);
+    e2 &= dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED;
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, e2);
 
-    e2 <<= dbor::ErrorCodes::ILLFORMED;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE << dbor::ErrorCodes::ILLFORMED, e2);
+    e2 <<= dbor::ResultCodes::ILLFORMED;
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE << dbor::ResultCodes::ILLFORMED, e2);
 }
 
 

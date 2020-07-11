@@ -70,53 +70,53 @@ static void testGetAsIntegerUint8() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0x00}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0x00}).value().getAsInteger(v));
     ASSERT_EQUAL(24, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0xE7}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0xE7}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT8_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x18, 0xFF}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT8_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(UINT8_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // InfinityValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(UINT8_MAX, v);
 
     // NoneValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -128,59 +128,56 @@ static void testGetAsIntegerUint16() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0xE8}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0xE8}).value().getAsInteger(v));
     ASSERT_EQUAL(0x100, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x19, 0x00, 0x00}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x19, 0x00, 0x00}).value().getAsInteger(v));
     ASSERT_EQUAL(0x118, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x19, 0xE7, 0xFE}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x19, 0xE7, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT16_MAX, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
-                 (ValueBuilder{0x19, 0xE7}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, (ValueBuilder{0x19, 0xE7}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x19, 0xFF, 0xFF}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT16_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(UINT16_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(UINT16_MAX, v);
 
     // NoneValue
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -192,60 +189,58 @@ static void testGetAsIntegerUint32() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x19, 0xE8, 0xFE}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x19, 0xE8, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0x10000, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
-                 (ValueBuilder{0x19, 0xE8}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, (ValueBuilder{0x19, 0xE8}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1B, 0x00, 0x00, 0x00, 0x00}).value().getAsInteger(v));
     ASSERT_EQUAL(0x1010118, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1B, 0xE7, 0xFE, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT32_MAX, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x1B, 0xE7, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1B, 0xFF, 0xFF, 0xFF, 0xFF}).value().getAsInteger(v));
     ASSERT_EQUAL(UINT32_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(UINT32_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(UINT32_MAX, v);
 
     // NoneValue
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -257,58 +252,58 @@ static void testGetAsIntegerUint64() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0x100000000ul, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(0x101010101010118ull, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1F, 0xE7, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(UINT64_MAX, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x1F, 0xE7, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(UINT64_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(UINT64_MAX, v);
 
     // NoneValue
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -322,71 +317,71 @@ static void testGetAsIntegerInt8() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0x00}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0x00}).value().getAsInteger(v));
     ASSERT_EQUAL(24, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0x67}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0x67}).value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, (ValueBuilder{0x18, 0x68}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, (ValueBuilder{0x18, 0x68}).value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT8_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(-1, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x37}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x37}.value().getAsInteger(v));
     ASSERT_EQUAL(-24, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x38, 0x00}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x38, 0x00}).value().getAsInteger(v));
     ASSERT_EQUAL(-25, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x38, 0x67}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x38, 0x67}).value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, (ValueBuilder{0x38, 0x68}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, (ValueBuilder{0x38, 0x68}).value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT8_MIN, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MIN, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(INT8_MAX, v);
 
     // NoneValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -401,75 +396,73 @@ static void testGetAsIntegerInt16() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x18, 0x68}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x18, 0x68}).value().getAsInteger(v));
     ASSERT_EQUAL(128, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x18}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x19, 0xE7, 0x7E}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x19, 0xE7, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x19, 0xE8, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT16_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(-1, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x37}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x37}.value().getAsInteger(v));
     ASSERT_EQUAL(-24, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, (ValueBuilder{0x38, 0x68}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x38, 0x68}).value().getAsInteger(v));
     ASSERT_EQUAL(-129, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x39, 0xE7, 0x7E}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x39, 0xE7, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x39, 0xE8, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT16_MIN, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MIN, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(INT16_MAX, v);
 
     // NoneValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -484,78 +477,77 @@ static void testGetAsIntegerInt32() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
-                 (ValueBuilder{0x19, 0xE8, 0x7E}).value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, (ValueBuilder{0x19, 0xE8, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(32768, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x19, 0xE8}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1B, 0xE7, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT32_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(-1, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x37}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x37}.value().getAsInteger(v));
     ASSERT_EQUAL(-24, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x39, 0xE8, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(-32769, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, ValueBuilder{0x38}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x3B, 0xE7, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3B, 0xE8, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT32_MIN, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MIN, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(INT32_MAX, v);
 
     // NoneValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types
@@ -569,83 +561,83 @@ static void testGetAsIntegerInt64() {
 
     // IntegerValue(v) with v >= 0
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x00}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x17}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x17}.value().getAsInteger(v));
     ASSERT_EQUAL(23, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(2147483648ll, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x1F, 0xE7, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0x7E}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xE8, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0x7E}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MAX, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MAX, v);
 
     // IntegerValue(v) with v < 0
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x20}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x20}.value().getAsInteger(v));
     ASSERT_EQUAL(-1, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE, ValueBuilder{0x37}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x37}.value().getAsInteger(v));
     ASSERT_EQUAL(-24, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x3B, 0xE8, 0xFE, 0xFE, 0x7E}).value().getAsInteger(v));
     ASSERT_EQUAL(-2147483649ll, v);
-    ASSERT_EQUAL(dbor::ErrorCodes::INCOMPLETE,
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
                  (ValueBuilder{0x3B, 0xE8, 0xFE, 0xFE}).value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_PRECISE,
+    ASSERT_EQUAL(dbor::ResultCodes::OK,
                  (ValueBuilder{0x3F, 0xE7, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0x7E}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3F, 0xE8, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0xFE, 0x7E}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MIN, v);
 
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE,
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
                  (ValueBuilder{0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value()
                  .getAsInteger(v));
     ASSERT_EQUAL(INT64_MIN, v);
 
     // MinusZeroValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::OK_IMPRECISE, ValueBuilder{0xFC}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_PRECISION, ValueBuilder{0xFC}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // MinusInfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFD}.value().getAsInteger(v));
     ASSERT_EQUAL(INT64_MIN, v);
 
     // InfinityValue
-    ASSERT_EQUAL(dbor::ErrorCodes::OUT_OF_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE, ValueBuilder{0xFE}.value().getAsInteger(v));
     ASSERT_EQUAL(INT64_MAX, v);
 
     // NoneValue
     v = 7;
-    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsInteger(v));
     ASSERT_EQUAL(0, v);
 
     // TODO other types

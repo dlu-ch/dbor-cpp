@@ -25,15 +25,15 @@ namespace dbor {
         bool isString() const noexcept;  // well-formed or ill-formed
         bool isContainer() const noexcept;  // well-formed or ill-formed
 
-        ErrorCodes getAsInteger(std::uint8_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::uint16_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::uint32_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::uint64_t &value) const noexcept;
+        ResultCodes getAsInteger(std::uint8_t &value) const noexcept;
+        ResultCodes getAsInteger(std::uint16_t &value) const noexcept;
+        ResultCodes getAsInteger(std::uint32_t &value) const noexcept;
+        ResultCodes getAsInteger(std::uint64_t &value) const noexcept;
 
-        ErrorCodes getAsInteger(std::int8_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::int16_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::int32_t &value) const noexcept;
-        ErrorCodes getAsInteger(std::int64_t &value) const noexcept;
+        ResultCodes getAsInteger(std::int8_t &value) const noexcept;
+        ResultCodes getAsInteger(std::int16_t &value) const noexcept;
+        ResultCodes getAsInteger(std::int32_t &value) const noexcept;
+        ResultCodes getAsInteger(std::int64_t &value) const noexcept;
 
     protected:
         const uint8_t *buffer_;
