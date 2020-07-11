@@ -61,7 +61,7 @@ bool Value::isContainer() const noexcept {
 namespace dbor::impl {
 
     template<typename T>
-    ErrorCode convertNumberlikeToInteger(T &value, std::uint8_t firstByte) {
+    ErrorCodes convertNumberlikeToInteger(T &value, std::uint8_t firstByte) {
         static_assert(std::numeric_limits<T>::is_integer, "");
 
         value = 0;
@@ -69,62 +69,62 @@ namespace dbor::impl {
         if (firstByte >= 0xFC) {
             switch (firstByte) {
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
-                return ErrorCode::OK_IMPRECISE;
+                return ErrorCodes::OK_IMPRECISE;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
                 value = std::numeric_limits<T>::min();
-                return ErrorCode::OUT_OF_RANGE;
+                return ErrorCodes::OUT_OF_RANGE;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
                 value = std::numeric_limits<T>::max();
-                return ErrorCode::OUT_OF_RANGE;
+                return ErrorCodes::OUT_OF_RANGE;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
             default:
-                return ErrorCode::NO_OBJECT;
+                return ErrorCodes::NO_OBJECT;
             }
         }
 
-        return ErrorCode::INCOMPATIBLE;
+        return ErrorCodes::INCOMPATIBLE;
     }
 
     template<typename T>  // T: e.g. std::uint32_t
-    static ErrorCode getAsUnsignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    static ErrorCodes getAsUnsignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
 
         value = 0;
 
         if (!size)
-            return ErrorCode::INCOMPLETE;
+            return ErrorCodes::INCOMPLETE;
 
         const std::uint8_t firstByte = buffer[0];
         if (firstByte < 0x20) {
             // non-negative IntegerValue
             if (firstByte < 0x18) {
                 value = firstByte;
-                return ErrorCode::OK_PRECISE;
+                return ErrorCodes::OK_PRECISE;
             }
 
             std::size_t n = 1 + (firstByte & 7);
             if (size <= n)
-                return ErrorCode::INCOMPLETE;
+                return ErrorCodes::INCOMPLETE;
 
             if (!Encoding::decodeNaturalTokenData(value, &buffer[1], n, 23)) {
                 value = std::numeric_limits<T>::max();
-                return ErrorCode::OUT_OF_RANGE;
+                return ErrorCodes::OUT_OF_RANGE;
             }
 
-            return ErrorCode::OK_PRECISE;
+            return ErrorCodes::OK_PRECISE;
         }
 
         if (firstByte < 0x40)
             // negative IntegerValue
-            return ErrorCode::OUT_OF_RANGE;
+            return ErrorCodes::OUT_OF_RANGE;
 
         return convertNumberlikeToInteger(value, firstByte);
     }
 
 
     template<typename T>  // T: e.g. std::int32_t
-    static ErrorCode getAsSignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    static ErrorCodes getAsSignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
         typedef typename std::make_unsigned<T>::type U;
@@ -132,7 +132,7 @@ namespace dbor::impl {
         value = 0;
 
         if (!size)
-            return ErrorCode::INCOMPLETE;
+            return ErrorCodes::INCOMPLETE;
 
         const std::uint8_t firstByte = buffer[0];
         if (firstByte < 0x40) {
@@ -141,7 +141,7 @@ namespace dbor::impl {
             if (u >= 0x18) {
                 std::size_t n = 1 + (firstByte & 7);
                 if (size <= n)
-                    return ErrorCode::INCOMPLETE;
+                    return ErrorCodes::INCOMPLETE;
 
                 if (!Encoding::decodeNaturalTokenData(u, &buffer[1], n, 23))
                     u = std::numeric_limits<U>::max();
@@ -154,14 +154,14 @@ namespace dbor::impl {
                 // non-negative
                 if (u > static_cast<U>(std::numeric_limits<T>::max())) {
                     value = std::numeric_limits<T>::max();
-                    return ErrorCode::OUT_OF_RANGE;
+                    return ErrorCodes::OUT_OF_RANGE;
                 }
                 value = static_cast<T>(u);
             } else {
                 // negative
                 if (u >= -static_cast<U>(std::numeric_limits<T>::min())) {
                     value = std::numeric_limits<T>::min();
-                    return ErrorCode::OUT_OF_RANGE;
+                    return ErrorCodes::OUT_OF_RANGE;
                 }
                 // T can represent -(u + 1)
 
@@ -180,7 +180,7 @@ namespace dbor::impl {
                 // since T can represent -(u + 1), T can represent u:
                 value = -static_cast<T>(u) - 1;
             }
-            return ErrorCode::OK_PRECISE;
+            return ErrorCodes::OK_PRECISE;
         }
 
         return impl::convertNumberlikeToInteger(value, firstByte);
@@ -188,19 +188,19 @@ namespace dbor::impl {
 
 
     template<typename T>  // T: e.g. std::uint8_t
-    ErrorCode getAsUnsignedIntegerFromBigger(T &value,
-                                             const std::uint8_t *buffer, std::size_t size)
+    ErrorCodes getAsUnsignedIntegerFromBigger(T &value,
+                                              const std::uint8_t *buffer, std::size_t size)
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
 
         std::uint32_t v;
-        ErrorCode e = getAsUnsignedInteger(v, buffer, size);
+        ErrorCodes e = getAsUnsignedInteger(v, buffer, size);
         static_assert(sizeof(value) <= sizeof(v), "");
 
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
-            e = ErrorCode::OUT_OF_RANGE;
+            e = ErrorCodes::OUT_OF_RANGE;
         }
 
         value = v;
@@ -209,18 +209,20 @@ namespace dbor::impl {
 
 
     template<typename T>  // T: e.g. std::int8_t
-    ErrorCode getAsSignedIntegerFromBigger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    ErrorCodes getAsSignedIntegerFromBigger(T &value,
+                                            const std::uint8_t *buffer, std::size_t size)
+    {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
 
         std::int32_t v;
-        ErrorCode e = getAsSignedInteger(v, buffer, size);
+        ErrorCodes e = getAsSignedInteger(v, buffer, size);
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
-            e = ErrorCode::OUT_OF_RANGE;
+            e = ErrorCodes::OUT_OF_RANGE;
         } else if (v < std::numeric_limits<T>::min()) {
             v = std::numeric_limits<T>::min();
-            e = ErrorCode::OUT_OF_RANGE;
+            e = ErrorCodes::OUT_OF_RANGE;
         }
 
         value = v;
@@ -231,17 +233,17 @@ namespace dbor::impl {
 }
 
 
-ErrorCode Value::getAsInteger(std::uint8_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::uint8_t &value) const noexcept {
     return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ErrorCode Value::getAsInteger(std::uint16_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::uint16_t &value) const noexcept {
     return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ErrorCode Value::getAsInteger(std::uint32_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::uint32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
         return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
     #else
@@ -250,22 +252,22 @@ ErrorCode Value::getAsInteger(std::uint32_t &value) const noexcept {
 }
 
 
-ErrorCode Value::getAsInteger(std::uint64_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::uint64_t &value) const noexcept {
     return impl::getAsUnsignedInteger(value, buffer_, size_);
 }
 
 
-ErrorCode Value::getAsInteger(std::int8_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::int8_t &value) const noexcept {
     return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ErrorCode Value::getAsInteger(std::int16_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::int16_t &value) const noexcept {
     return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ErrorCode Value::getAsInteger(std::int32_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::int32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
         return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
     #else
@@ -274,6 +276,6 @@ ErrorCode Value::getAsInteger(std::int32_t &value) const noexcept {
 }
 
 
-ErrorCode Value::getAsInteger(std::int64_t &value) const noexcept {
+ErrorCodes Value::getAsInteger(std::int64_t &value) const noexcept {
     return impl::getAsSignedInteger(value, buffer_, size_);
 }

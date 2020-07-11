@@ -34,7 +34,7 @@ namespace dbor {
             NONE       = 0xFFu
         };
 
-        static std::size_t sizeOfTokenFromFirstByte(std::uint8_t b) noexcept;
+        static std::size_t sizeOfTokenFromFirstByte(std::uint8_t b) noexcept;  // returns 1 .. 9
 
         // Size of first (well-formed or ill-formed) value in buffer p[0] ... p[capacity - 1] or
         // 0 or buffer is too small to calculate size (size would depends on bytes after the end

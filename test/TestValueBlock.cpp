@@ -213,7 +213,32 @@ static void testCanBeUsedInRangeIteration() {
 }
 
 
-void testValueIterator() {
+
+static void testChainedDecoding() {
+    const std::uint8_t buffer[] = { 0xFF, 12, 0xFE };
+    dbor::ValueBlock values(buffer, sizeof(buffer));
+    auto iter = values.begin();
+
+    ASSERT_EQUAL(buffer, iter->buffer());
+
+    std::uint8_t a, b, c;
+    dbor::ErrorCodes errorCodes =
+             (iter)->getAsInteger(a)
+        << (++iter)->getAsInteger(b)
+        << (++iter)->getAsInteger(c);
+
+    ASSERT_EQUAL(0, a);
+    ASSERT_EQUAL(12, b);
+    ASSERT_EQUAL(0xFF, c);
+
+    ASSERT_EQUAL(dbor::ErrorCodes::NO_OBJECT << dbor::ErrorCodes::OUT_OF_RANGE, errorCodes);
+    ASSERT_TRUE(!isOk(errorCodes));
+    ASSERT_TRUE(isOkExcept(errorCodes,
+                           dbor::ErrorCodes::NO_OBJECT << dbor::ErrorCodes::OUT_OF_RANGE));
+}
+
+
+void testValueBlock() {
     testValueBlockPreservesBufferAndCapacity();
     testIsEmptyWithoutBuffer();
     testIsEmptyWithEmptyBuffer();
@@ -226,5 +251,7 @@ void testValueIterator() {
     testIteratesOverAllIfWellformed();
     testIteratesOverAllIfLastIsIncomplete();
     testIteratesOverIllformedDecimalRational();
+
     testCanBeUsedInRangeIteration();
+    testChainedDecoding();
 }

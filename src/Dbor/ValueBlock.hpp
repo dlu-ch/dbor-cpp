@@ -42,6 +42,7 @@ namespace dbor {
         bool operator!=(const Iterator &other) const noexcept;
 
         Iterator &operator++() noexcept;
+        // no post-decrement operator on purpuse (would be slow)
         const Value &operator*() const noexcept;  // moves with the iterator
         const Value *operator->() const noexcept;  // moves with the iterator
 
