@@ -60,7 +60,7 @@ namespace dbor {
                                                   std::uint8_t *p, std::size_t capacity) noexcept;
     };
 
-};
+}
 
 
 // Inline implementations ---

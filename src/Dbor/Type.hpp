@@ -38,59 +38,76 @@ namespace dbor {
 
 
     // Beware: order of evaluation is unspecified for function calls and most operators.
-    // Exceptions: <<, >>, ||, &&, comma, compound assignment operators (|= etc.), [], ->, *
+    // Exceptions: <<, >>, ||, &&, comma, compound assignment operators ad some others.
+    //
+    // For the following operators, every value computation and side-effect of left
+    // is sequenced before right.
 
     // Set union: return all errors in included in left or in right.
-    // Every value computation and side-effect of left is sequenced before right.
+    ResultCodes operator<<(ResultCodes left, ResultCodes right) noexcept;
+
+    // Set union: include in left all errors included in right.
+    ResultCodes &operator<<=(ResultCodes &left, ResultCodes right) noexcept;
+
+    // Set intersection: exclude in left all errors not included in right.
+    ResultCodes operator&=(ResultCodes &left, ResultCodes right) noexcept;
+
+    // Symmetric set difference: exclude in left all errors included in right.
+    ResultCodes &operator-=(ResultCodes &left, ResultCodes right) noexcept;
+
+
+    // = OK?
+    bool isOk(ResultCodes errorCode) noexcept;
+
+    // = OK after all bits in exceptions are cleared?
+    bool isOkExcept(ResultCodes errorCode, ResultCodes exceptions) noexcept;
+
+    // = APPROX_PRECISION or = APPROX_RANGE?
+    bool isApprox(ResultCodes errorCode) noexcept;
+}
+
+
+// Inline implementations ---
+
+namespace dbor {
+
     inline ResultCodes operator<<(ResultCodes left, ResultCodes right) noexcept {
         typedef std::underlying_type<ResultCodes>::type U;
         return static_cast<ResultCodes>(static_cast<U>(left) | static_cast<U>(right));
     }
 
-    // Set union: include in left all errors included in right.
-    // Every value computation and side-effect of left is sequenced before right.
     inline ResultCodes &operator<<=(ResultCodes &left, ResultCodes right) noexcept {
         typedef std::underlying_type<ResultCodes>::type U;
         left = static_cast<ResultCodes>(static_cast<U>(left) | static_cast<U>(right));
         return left;
     }
 
-    // Set intersection: exclude in left all errors not included in right.
-    // Exclude in left all bits cleared in right.
-    // Every value computation and side-effect of left is sequenced before right.
     inline ResultCodes operator&=(ResultCodes &left, ResultCodes right) noexcept {
         typedef std::underlying_type<ResultCodes>::type U;
         left = static_cast<ResultCodes>(static_cast<U>(left) & static_cast<U>(right));
         return left;
     }
 
-    // Symmetric set difference: exclude in left all errors included in right.
-    // Exclude in left all bits set in right.
-    // Every value computation and side-effect of left is sequenced before right.
     inline ResultCodes &operator-=(ResultCodes &left, ResultCodes right) noexcept {
         typedef std::underlying_type<ResultCodes>::type U;
         left = static_cast<ResultCodes>(static_cast<U>(left) & ~static_cast<U>(right));
         return left;
     }
 
-    // = OK?
     inline bool isOk(ResultCodes errorCode) noexcept {
         return errorCode == ResultCodes::OK;
     }
 
-    // = OK after all bits in exceptions are cleared?
     inline bool isOkExcept(ResultCodes errorCode, ResultCodes exceptions) noexcept {
         typedef std::underlying_type<ResultCodes>::type U;
         return isOk(static_cast<ResultCodes>(static_cast<U>(errorCode)
                   & ~static_cast<U>(exceptions)));
     }
 
-    // = APPROX_PRECISION or = APPROX_RANGE?
     inline bool isApprox(ResultCodes errorCode) noexcept {
         return errorCode >= ResultCodes::APPROX_PRECISION && errorCode <= ResultCodes::APPROX_RANGE;
     }
 
-};
-
+}
 
 #endif  // DBOR_TYPE_HPP_

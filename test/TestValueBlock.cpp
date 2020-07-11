@@ -213,7 +213,6 @@ static void testCanBeUsedInRangeIteration() {
 }
 
 
-
 static void testChainedDecoding() {
     const std::uint8_t buffer[] = { 0xFF, 12, 0xFE };
     dbor::ValueBlock values(buffer, sizeof(buffer));
