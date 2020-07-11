@@ -3,18 +3,10 @@
 // Copyright (C) 2020 Daniel Lutz <dlu-ch@users.noreply.github.com>
 
 #include <limits>
+#include "Dbor/Conf.hpp"
 #include "Dbor/Encoding.hpp"
 
 using namespace dbor;
-
-
-#if !defined(DBOR_HAS_FAST_64BIT_ARITH)
-    #if UINT_FAST32_SIZE >= 8
-        #define DBOR_HAS_FAST_64BIT_ARITH 1
-    #else
-        #define DBOR_HAS_FAST_64BIT_ARITH 0
-    #endif
-#endif
 
 
 std::size_t Encoding::sizeOfValueIn(const std::uint8_t *p, std::size_t capacity) noexcept {
@@ -107,7 +99,7 @@ namespace dbor::impl {
         static_assert(!std::numeric_limits<F>::is_signed, "");
         static_assert(sizeof(F) >= sizeof(T), "");
 
-        static_assert(sizeof(value) <= 8, "");
+        static_assert(sizeof(value) <= sizeof(std::uint64_t), "");
         static constexpr F ONE_PER_BYTE = static_cast<T>(0x0101010101010101ull);
 
         if (n - 1u > sizeof(value) - 1u) {

@@ -27,11 +27,11 @@ namespace dbor {
             NUMBERLIKE,
         };
 
-        enum class MinimalTokenNonHeader: std::uint_least8_t {
-            MINUS_ZERO = 0x1Cu,
-            MINUS_INF  = 0x1Du,
-            INF        = 0x1Eu,
-            NONE       = 0x1Fu
+        enum class SingleByteValue: std::uint8_t {
+            MINUS_ZERO = 0xFCu,
+            MINUS_INF  = 0xFDu,
+            INF        = 0xFEu,
+            NONE       = 0xFFu
         };
 
         static std::size_t sizeOfTokenFromFirstByte(std::uint8_t b) noexcept;

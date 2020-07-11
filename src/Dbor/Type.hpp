@@ -10,12 +10,14 @@
 namespace dbor {
 
     enum class ErrorCode {
-        OK,
-        IMPRECISE,
+        OK_PRECISE,
+        OK_IMPRECISE,
+
         OUT_OF_RANGE,
         NO_OBJECT,
         INCOMPATIBLE,
-        ILLFORMED
+        ILLFORMED,
+        INCOMPLETE  // TODO -> spec?
     };
 
 };
