@@ -18,7 +18,11 @@ import dlb.fs
 import dlb.ex
 import dlb_contrib.gcc
 import dlb_contrib.iso6429
+import dlb_contrib.exctrace
 
+dlb_contrib.exctrace.enable_compact_with_cwd(
+    involved_line_limit=3,
+    traceback_file='build/out/traceback.log')
 if sys.stderr.isatty():
     # assume terminal compliant with ISO/IEC 6429 ("VT-100 compatible")
     dlb.di.set_output_file(dlb_contrib.iso6429.MessageColorator(sys.stderr))
@@ -39,6 +43,7 @@ class Linker(dlb_contrib.gcc.CplusplusLinkerGcc):
     pass
 
 
+# TODO replace by tool with executable as input dependency
 class Application(dlb.ex.Tool):
     EXECUTABLE = '@application'
 
@@ -88,13 +93,18 @@ with dlb.ex.Context():
     test_directory = Path('test/')
     output_directory = Path('build/out/')
 
-    class Compiler32b(Compiler):
+    class OptimizingCompiler(Compiler):
+        def get_compile_arguments(self) -> Iterable[Union[str, dlb.fs.Path, dlb.fs.Path.Native]]:
+            return super().get_compile_arguments() + ['-O3']
+
+    class Compiler32b(OptimizingCompiler):
         DEFINITIONS = {'DBOR_HAS_FAST_64BIT_ARITH': 0}
 
-    class Compiler64b(Compiler):
+    class Compiler64b(OptimizingCompiler):
         DEFINITIONS = {'DBOR_HAS_FAST_64BIT_ARITH': 1}
 
     compiler_by_configuration = {
+        'default': Compiler,
         '32b': Compiler32b,
         '64b': Compiler64b
     }
