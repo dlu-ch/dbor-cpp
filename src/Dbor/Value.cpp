@@ -31,6 +31,33 @@ Value::Value(const uint8_t *buffer, std::size_t capacity) noexcept {
 }
 
 
+bool Value::isNone() const noexcept {
+    return size_ && buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE);
+}
+
+
+bool Value::isNumberlike() const noexcept {
+    return size_
+        && buffer_[0] >= static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO)
+        && buffer_[0] != static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE);
+}
+
+
+bool Value::isNumber() const noexcept {
+    return size_ && (buffer_[0] < 0x40 || (buffer_[0] >= 0xC8 && buffer_[0] < 0xF0));
+}
+
+
+bool Value::isString() const noexcept {
+    return size_ && buffer_[0] >= 0x40 && buffer_[0] < 0x80;
+}
+
+
+bool Value::isContainer() const noexcept {
+    return size_ && buffer_[0] >= 0x80 && buffer_[0] < 0xC8;
+}
+
+
 namespace dbor::impl {
 
     template<typename T>

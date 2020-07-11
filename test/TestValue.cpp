@@ -651,6 +651,94 @@ static void testGetAsIntegerInt64() {
 }
 
 
+static void testIsNone() {
+    ASSERT_TRUE(ValueBuilder{0xFF}.value().isNone());
+
+    ASSERT_TRUE(!dbor::Value().isNone());
+    ASSERT_TRUE(!ValueBuilder{0xFE}.value().isNone());
+}
+
+
+static void testIsNumberlike() {
+    ASSERT_TRUE(ValueBuilder{0xFC}.value().isNumberlike());
+    ASSERT_TRUE(ValueBuilder{0xFD}.value().isNumberlike());
+    ASSERT_TRUE(ValueBuilder{0xFE}.value().isNumberlike());
+
+    ASSERT_TRUE(!dbor::Value().isNumberlike());
+    ASSERT_TRUE(!ValueBuilder{0xFB}.value().isNumberlike());
+    ASSERT_TRUE(!ValueBuilder{0xFF}.value().isNumberlike());
+}
+
+
+static void testIsNumber() {
+    // IntegerValue
+    ASSERT_TRUE(ValueBuilder{0x00}.value().isNumber());
+    ASSERT_TRUE((ValueBuilder{0x3F, 0x00}).value().isNumber());
+
+    // BinaryRationalValue
+    ASSERT_TRUE(ValueBuilder{0xC8}.value().isNumber());
+    ASSERT_TRUE((ValueBuilder{0xCF, 0xFF}).value().isNumber());
+
+    // DecimalRationalValue
+    ASSERT_TRUE(ValueBuilder{0xD0}.value().isNumber());
+    ASSERT_TRUE((ValueBuilder{0xEF, 0x00}).value().isNumber());
+
+    ASSERT_TRUE(!dbor::Value().isNumber());
+    ASSERT_TRUE(!ValueBuilder{0xFC}.value().isNumber());
+    ASSERT_TRUE(!ValueBuilder{0xFD}.value().isNumber());
+    ASSERT_TRUE(!ValueBuilder{0xFE}.value().isNumber());
+    ASSERT_TRUE(!ValueBuilder{0xFF}.value().isNumber());
+}
+
+
+static void testIsString() {
+    ASSERT_TRUE(ValueBuilder{0x40}.value().isString());
+    ASSERT_TRUE((ValueBuilder{0x7F, 0x30}).value().isString());
+
+    ASSERT_TRUE(!dbor::Value().isString());
+    ASSERT_TRUE(!ValueBuilder{0x3F}.value().isString());
+    ASSERT_TRUE(!ValueBuilder{0x80}.value().isString());
+}
+
+
+static void testIsContainer() {
+    ASSERT_TRUE(ValueBuilder{0x80}.value().isContainer());
+    ASSERT_TRUE((ValueBuilder{0xC7, 0xFF}).value().isContainer());
+
+    ASSERT_TRUE(!dbor::Value().isString());
+    ASSERT_TRUE(!ValueBuilder{0x7F}.value().isContainer());
+    ASSERT_TRUE(!ValueBuilder{0xC8}.value().isContainer());
+}
+
+
+static void testIsXXXAreMutallyExclusive() {
+    std::uint8_t b = 0;
+    for (;;) {
+        const std::uint8_t buffer[] = {b};
+        dbor::Value value(buffer, sizeof(buffer));
+
+        std::uint_least8_t n = 0;
+        if (value.isNone())
+            n++;
+        if (value.isNumberlike())
+            n++;
+        if (value.isNumber())
+            n++;
+        if (value.isString())
+            n++;
+        if (value.isContainer())
+            n++;
+
+        ASSERT_TRUE(n <= 1);
+        if (!(b >= 0xF0 && b < 0xFC))  // reserved?
+            ASSERT_EQUAL(1, n);
+
+        if (b++ == 0xFF)
+            break;
+    }
+}
+
+
 void testValue() {
     testDefaultConstructedIsEmpty();
     testIsEmptyWithoutBuffer();
@@ -666,4 +754,11 @@ void testValue() {
     testGetAsIntegerInt16();
     testGetAsIntegerInt32();
     testGetAsIntegerInt64();
+
+    testIsNone();
+    testIsNumberlike();
+    testIsNumber();
+    testIsString();
+    testIsContainer();
+    testIsXXXAreMutallyExclusive();
 }

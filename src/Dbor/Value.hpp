@@ -11,13 +11,19 @@ namespace dbor {
 
     class Value {
     public:
-        Value() noexcept;  // invalid
+        Value() noexcept;  // incomplete
         Value(const uint8_t *buffer, std::size_t capacity) noexcept;
         Value(const Value &) noexcept = default;
         Value &operator=(const Value &) noexcept = default;
 
         const uint8_t *buffer() const noexcept;  // nullptr if and only if size() = 0
         std::size_t size() const noexcept;  // = 0 if and only if buffer() = nullptr
+
+        bool isNone() const noexcept;  // well-formed
+        bool isNumberlike() const noexcept;  // well-formed
+        bool isNumber() const noexcept;  // well-formed or ill-formed
+        bool isString() const noexcept;  // well-formed or ill-formed
+        bool isContainer() const noexcept;  // well-formed or ill-formed
 
         ErrorCode getAsInteger(std::uint8_t &value) const noexcept;
         ErrorCode getAsInteger(std::uint16_t &value) const noexcept;
