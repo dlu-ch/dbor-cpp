@@ -122,9 +122,9 @@ namespace dbor::impl {
 
 
 #if DBOR_HAS_FAST_64BIT_ARITH
-    #include "Encoding_64b.cpp.inc"
+    #include "Dbor/Encoding_64b.cpp.inc"
 #else
-    #include "Encoding_32b.cpp.inc"
+    #include "Dbor/Encoding_32b.cpp.inc"
 #endif
 
 
