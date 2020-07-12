@@ -45,7 +45,7 @@ static void testIsEmptyWithoutBuffer() {
 
 
 static void testSizeOfIncompleteIsCapacity() {
-   const std::uint8_t buffer[] = { 0x3F, 0x00 };
+   const std::uint8_t buffer[] = {0x3F, 0x00};
    dbor::Value v(buffer, sizeof(buffer));
    ASSERT_EQUAL(buffer, v.buffer());
    ASSERT_EQUAL(sizeof(buffer), v.size());
@@ -54,7 +54,7 @@ static void testSizeOfIncompleteIsCapacity() {
 
 
 static void testSizeOfMultipleIsSizeOfFirst() {
-   const std::uint8_t buffer[] = { 0x19, 0x01, 0x02, 0xFF };
+   const std::uint8_t buffer[] = {0x19, 0x01, 0x02, 0xFF};
    dbor::Value v(buffer, sizeof(buffer));
    ASSERT_EQUAL(buffer, v.buffer());
    ASSERT_EQUAL(3, v.size());

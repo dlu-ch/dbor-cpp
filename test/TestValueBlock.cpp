@@ -69,7 +69,7 @@ static void testIsAtEndWithEmptyBuffer() {
 
 
 static void testIsNonemptyWithIncomplete() {
-    const std::uint8_t buffer[] = { 0x1F, 0x00 };
+    const std::uint8_t buffer[] = {0x1F, 0x00};
     dbor::ValueBlock values(buffer, sizeof(buffer));
     dbor::ValueBlock::Iterator iter(buffer, sizeof(buffer));
 
@@ -86,7 +86,7 @@ static void testIsNonemptyWithIncomplete() {
 
 
 static void testIteratesOverAllIfWellformed() {
-    const std::uint8_t buffer[] = { 0xFF, 0x18, 0x00, 0xA0 };
+    const std::uint8_t buffer[] = {0xFF, 0x18, 0x00, 0xA0};
     dbor::ValueBlock values(buffer, sizeof(buffer));
     dbor::ValueBlock::Iterator iter(buffer, sizeof(buffer));
 
@@ -127,7 +127,7 @@ static void testIteratesOverAllIfWellformed() {
 
 
 static void testIteratesOverAllIfLastIsIncomplete() {
-    const std::uint8_t buffer[] = { 0x18, 0x00, 0xA0, 0x1F, 0x00 };
+    const std::uint8_t buffer[] = {0x18, 0x00, 0xA0, 0x1F, 0x00};
     dbor::ValueBlock values(buffer, sizeof(buffer));
     dbor::ValueBlock::Iterator iter(buffer, sizeof(buffer));
 
@@ -168,7 +168,7 @@ static void testIteratesOverAllIfLastIsIncomplete() {
 
 
 static void testIteratesOverIllformedDecimalRational() {
-    const std::uint8_t buffer[] = { 0xE0, 0xE1, 0xE2 };
+    const std::uint8_t buffer[] = {0xE0, 0xE1, 0xE2};
     dbor::ValueBlock values(buffer, sizeof(buffer));
     dbor::ValueBlock::Iterator iter(buffer, sizeof(buffer));
 
@@ -202,7 +202,7 @@ static void testIteratesOverIllformedDecimalRational() {
 
 
 static void testCanBeUsedInRangeIteration() {
-    const std::uint8_t buffer[] = { 0xFF, 12 };
+    const std::uint8_t buffer[] = {0xFF, 12};
     std::size_t n = 0;
     for (const dbor::Value &v: dbor::ValueBlock(buffer, sizeof(buffer))) {
         ASSERT_TRUE(v.buffer() >= buffer);
@@ -214,7 +214,7 @@ static void testCanBeUsedInRangeIteration() {
 
 
 static void testChainedDecoding() {
-    const std::uint8_t buffer[] = { 0xFF, 12, 0xFE };
+    const std::uint8_t buffer[] = {0xFF, 12, 0xFE};
     dbor::ValueBlock values(buffer, sizeof(buffer));
     auto iter = values.begin();
 
