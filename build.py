@@ -11,6 +11,7 @@
 
 import sys
 import os
+import collections
 from typing import Iterable, Union
 
 import dlb.di
@@ -51,14 +52,14 @@ class Application(dlb.ex.Tool):
         await context.execute_helper(self.EXECUTABLE)
 
 
-def build_with_definitions(source_directory, test_directory, output_directory, Compiler):
+def build_with_definitions(source_directory, test_directory, output_directory, compiler):
     generated_source_directory = output_directory / 'Dbor/Generated/'
     generated_test_directory = output_directory / 'test/generated/'
 
     with dlb.di.Cluster('compile each .hpp'), dlb.ex.Context():
         for p in source_directory.iterdir(name_filter=r'.+\.hpp',
                                           recurse_name_filter='', is_dir=False):
-            Compiler(
+            compiler(
                 source_files=[p],
                 object_files=[output_directory / p.with_appended_suffix('.ot')],
                 include_search_directories=[source_directory]
@@ -70,7 +71,7 @@ def build_with_definitions(source_directory, test_directory, output_directory, C
         source_files += test_directory.list(
             name_filter=r'.+\.cpp', recurse_name_filter='', is_dir=False)
         compile_results = [
-            Compiler(
+            compiler(
                 source_files=[p],
                 object_files=[output_directory / p.with_appended_suffix('.o')],
                 include_search_directories=[source_directory]
@@ -83,9 +84,7 @@ def build_with_definitions(source_directory, test_directory, output_directory, C
             object_and_archive_files=[r.object_files[0] for r in compile_results],
             linked_file=output_directory / 'tester').start().linked_file
 
-    with dlb.di.Cluster('test'), dlb.ex.Context():
-        dlb.ex.Context.active.helper[Application.EXECUTABLE] = application_file
-        Application().start(force_redo=True)
+    return application_file
 
 
 with dlb.ex.Context():
@@ -103,19 +102,23 @@ with dlb.ex.Context():
     class Compiler64b(OptimizingCompiler):
         DEFINITIONS = {'DBOR_HAS_FAST_64BIT_ARITH': 1}
 
-    compiler_by_configuration = {
-        'default': Compiler,
-        '32b': Compiler32b,
-        '64b': Compiler64b
-    }
+    compiler_by_configuration = collections.OrderedDict([
+        ('default', Compiler),
+        ('32b',     Compiler32b),
+        ('64b',     Compiler64b)
+    ])
 
-    for configuration in sorted(compiler_by_configuration):
+    for configuration, compiler in compiler_by_configuration.items():
         with dlb.di.Cluster(f'configuration {configuration!r}'):
-            build_with_definitions(
+            application_file = build_with_definitions(
                 source_directory=Path('src/'),
                 test_directory=Path('test/'),
                 output_directory=Path('build/out/') / f'{configuration}/',
-                Compiler=compiler_by_configuration[configuration]
+                compiler=compiler
             )
+            with dlb.di.Cluster(f'test'):
+                dlb.ex.Context.active.helper[Application.EXECUTABLE] = application_file
+                Application().start(force_redo=True)
+
 
 dlb.di.inform(f'complete (all tests passed)')
