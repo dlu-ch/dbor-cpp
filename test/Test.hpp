@@ -8,21 +8,49 @@
 #include <iostream>
 
 
-struct TestFailed {
-    TestFailed(std::size_t lineNo) : lineNo(lineNo) {}
-    const std::size_t lineNo;
-};
-
-
 #define ASSERT_EQUAL(expected, actual) \
     while ((expected) != (actual)) { \
         std::cout << __FILE__ << ":" << __LINE__ << ":error: test failed" << std::endl; \
-        throw TestFailed(__LINE__); \
+        throw ::test::TestFailed(__LINE__); \
     }
 
 
 #define ASSERT_TRUE(actual) \
     ASSERT_EQUAL(true, actual)
+
+
+namespace test {
+
+    struct TestFailed {
+        TestFailed(std::size_t lineNo) : lineNo(lineNo) {}
+        const std::size_t lineNo;
+    };
+
+
+    // Usage: ByteBufferBuilder{0x00, 0x12}.buffer()
+    class ByteBufferBuilder {
+    public:
+        ByteBufferBuilder() : buffer_(new std::uint8_t[1]), size_(0) { *buffer_ = 0; }
+        ByteBufferBuilder(std::initializer_list<std::uint8_t> bytes);
+        virtual ~ByteBufferBuilder() noexcept { delete[] buffer_; };
+
+        const std::uint8_t *buffer() const noexcept { return buffer_; }  // != nullptr
+        const std::size_t size() const noexcept { return size_; }
+
+    protected:
+        uint8_t *const buffer_;
+        const std::size_t size_;
+    };
+
+
+    inline ByteBufferBuilder::ByteBufferBuilder(std::initializer_list<std::uint8_t> bytes)
+        : buffer_(new std::uint8_t[bytes.size()]), size_(bytes.size())
+    {
+        std::uint8_t *p = buffer_;
+        for (std::uint8_t b: bytes) *p++ = b;
+    }
+
+}
 
 
 #endif  // TEST_HPP_
