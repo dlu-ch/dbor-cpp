@@ -18,12 +18,13 @@ namespace dbor {
 
         const uint8_t *buffer() const noexcept;  // nullptr if and only if size() = 0
         std::size_t size() const noexcept;  // = 0 if and only if buffer() = nullptr
+        bool isComplete() const noexcept; // true only if size() > 0
 
-        bool isNone() const noexcept;  // well-formed
-        bool isNumberlike() const noexcept;  // well-formed
-        bool isNumber() const noexcept;  // well-formed or ill-formed
-        bool isString() const noexcept;  // well-formed or ill-formed
-        bool isContainer() const noexcept;  // well-formed or ill-formed
+        bool isNone() const noexcept;
+        bool isNumberlike() const noexcept;
+        bool isNumber() const noexcept;  // well-formed or ill-formed/incomplete
+        bool isString() const noexcept;  // well-formed or ill-formed/incomplete
+        bool isContainer() const noexcept;  // well-formed or ill-formed/incomplete
 
         ResultCodes getAsInteger(std::uint8_t &value) const noexcept;
         ResultCodes getAsInteger(std::uint16_t &value) const noexcept;
@@ -35,9 +36,13 @@ namespace dbor {
         ResultCodes getAsInteger(std::int32_t &value) const noexcept;
         ResultCodes getAsInteger(std::int64_t &value) const noexcept;
 
+        ResultCodes getAsByteString(const std::uint8_t *&bytes,
+                                    std::size_t &size) const noexcept;
+
     protected:
         const uint8_t *buffer_;
         std::size_t size_;
+        bool isComplete_;
     };
 
 }
@@ -52,6 +57,11 @@ inline const uint8_t *dbor::Value::buffer() const noexcept {
 
 inline std::size_t dbor::Value::size() const noexcept {
     return size_;
+}
+
+
+inline bool dbor::Value::isComplete() const noexcept {
+    return isComplete_;
 }
 
 

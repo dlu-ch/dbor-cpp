@@ -8,53 +8,63 @@
 #include "Dbor/Conf.hpp"
 #include "Dbor/Encoding.hpp"
 
+// Design decisions:
+// - Optimize for use case where getAsXXX() is called on most dbor::Value instances
+// - Do not call Encoding::sizeOfValueIn() after construction
+// - Avoid type detection, use duck typing approach
+// - Do not access bytes outside buffer_[0] ... buffer_[size_ - 1] even if buffer changes between
+//   calls of methods (i.e.: do not rely on isComplete_ for boundary checking)
+
 using namespace dbor;
 
 
 Value::Value() noexcept
     : buffer_(nullptr)
     , size_(0)
+    , isComplete_(false)
 {
 }
 
 
 Value::Value(const uint8_t *buffer, std::size_t capacity) noexcept {
     if (buffer && capacity) {
-        size_ = Encoding::sizeOfValueIn(buffer, capacity);
-        if (size_ == 0 || size_ > capacity)
-            size_ = capacity;
         buffer_ = buffer;
+        size_ = Encoding::sizeOfValueIn(buffer, capacity);
+        isComplete_ = size_ != 0 && size_ <= capacity;
+        if (!isComplete_)
+            size_ = capacity;
     } else {
         buffer_ = nullptr;
         size_ = 0;
+        isComplete_ = false;
     }
 }
 
 
 bool Value::isNone() const noexcept {
-    return size_ && buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE);
+    return buffer_ && buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE);
 }
 
 
 bool Value::isNumberlike() const noexcept {
-    return size_
+    return buffer_
         && buffer_[0] >= static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO)
         && buffer_[0] != static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE);
 }
 
 
 bool Value::isNumber() const noexcept {
-    return size_ && (buffer_[0] < 0x40 || (buffer_[0] >= 0xC8 && buffer_[0] < 0xF0));
+    return buffer_ && (buffer_[0] < 0x40 || (buffer_[0] >= 0xC8 && buffer_[0] < 0xF0));
 }
 
 
 bool Value::isString() const noexcept {
-    return size_ && buffer_[0] >= 0x40 && buffer_[0] < 0x80;
+    return buffer_ && buffer_[0] >= 0x40 && buffer_[0] < 0x80;
 }
 
 
 bool Value::isContainer() const noexcept {
-    return size_ && buffer_[0] >= 0x80 && buffer_[0] < 0xC8;
+    return buffer_ && buffer_[0] >= 0x80 && buffer_[0] < 0xC8;
 }
 
 
@@ -86,7 +96,9 @@ namespace dbor::impl {
     }
 
     template<typename T>  // T: e.g. std::uint32_t
-    static ResultCodes getAsUnsignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    static ResultCodes getAsUnsignedInteger(T &value,
+                                            const std::uint8_t *buffer, std::size_t size)
+    {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
 
@@ -194,7 +206,12 @@ namespace dbor::impl {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
 
-        std::uint32_t v;
+        #if DBOR_HAS_FAST_64BIT_ARITH
+            std::uint32_t v;
+        #else
+            std::uint64_t v;
+        #endif
+
         ResultCodes e = getAsUnsignedInteger(v, buffer, size);
         static_assert(sizeof(value) <= sizeof(v), "");
 
@@ -215,7 +232,12 @@ namespace dbor::impl {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
 
-        std::int32_t v;
+        #if DBOR_HAS_FAST_64BIT_ARITH
+            std::int32_t v;
+        #else
+            std::int64_t v;
+        #endif
+
         ResultCodes e = getAsSignedInteger(v, buffer, size);
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
@@ -228,7 +250,6 @@ namespace dbor::impl {
         value = v;
         return e;
     }
-
 
 }
 
@@ -278,4 +299,30 @@ ResultCodes Value::getAsInteger(std::int32_t &value) const noexcept {
 
 ResultCodes Value::getAsInteger(std::int64_t &value) const noexcept {
     return impl::getAsSignedInteger(value, buffer_, size_);
+}
+
+
+ResultCodes Value::getAsByteString(const std::uint8_t *&bytes,
+                                   std::size_t &stringSize) const noexcept
+{
+    bytes = nullptr;
+    stringSize = 0;
+
+    if (!isComplete_)
+        return ResultCodes::INCOMPLETE;
+
+    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
+        return ResultCodes::NO_OBJECT;
+
+    if (buffer_[0] < 0x40 || buffer_[0] >= 0x60)
+        return ResultCodes::INCOMPATIBLE;
+
+    // ByteStringValue
+    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
+    if (size_ < sizeOfFirstToken)
+        return ResultCodes::INCOMPLETE;
+
+    stringSize = size_ - sizeOfFirstToken;
+    bytes = &buffer_[sizeOfFirstToken];
+    return ResultCodes::OK;
 }

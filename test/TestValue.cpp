@@ -31,6 +31,7 @@ static void testDefaultConstructedIsEmpty() {
     dbor::Value v;
     ASSERT_EQUAL(nullptr, v.buffer());
     ASSERT_EQUAL(0u, v.size());
+    ASSERT_TRUE(!v.isComplete());
 }
 
 
@@ -39,12 +40,14 @@ static void testIsEmptyWithoutBuffer() {
         dbor::Value v(nullptr, 27);
         ASSERT_EQUAL(nullptr, v.buffer());
         ASSERT_EQUAL(0u, v.size());
+        ASSERT_TRUE(!v.isComplete());
     }
     {
         const std::uint8_t buffer[1] = {};
         dbor::Value v(buffer, 0);
         ASSERT_EQUAL(nullptr, v.buffer());
         ASSERT_EQUAL(0u, v.size());
+        ASSERT_TRUE(!v.isComplete());
     }
 }
 
@@ -54,6 +57,7 @@ static void testSizeOfIncompleteIsCapacity() {
    dbor::Value v(buffer, sizeof(buffer));
    ASSERT_EQUAL(buffer, v.buffer());
    ASSERT_EQUAL(sizeof(buffer), v.size());
+   ASSERT_TRUE(!v.isComplete());
 }
 
 
@@ -62,11 +66,16 @@ static void testSizeOfMultipleIsSizeOfFirst() {
    dbor::Value v(buffer, sizeof(buffer));
    ASSERT_EQUAL(buffer, v.buffer());
    ASSERT_EQUAL(3, v.size());
+   ASSERT_TRUE(v.isComplete());
 }
 
 
 static void testGetAsIntegerUint8() {
     std::uint8_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -125,6 +134,10 @@ static void testGetAsIntegerUint8() {
 
 static void testGetAsIntegerUint16() {
     std::uint16_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -186,6 +199,10 @@ static void testGetAsIntegerUint16() {
 
 static void testGetAsIntegerUint32() {
     std::uint32_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -249,6 +266,10 @@ static void testGetAsIntegerUint32() {
 
 static void testGetAsIntegerUint64() {
     std::uint64_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -314,6 +335,10 @@ static void testGetAsIntegerInt8() {
     static_assert(INT8_MIN == -128 && INT8_MAX == 127, "expect 2's complement representation");
 
     std::int8_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -393,6 +418,10 @@ static void testGetAsIntegerInt16() {
                   "expect 2's complement representation");
 
     std::int16_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -474,6 +503,10 @@ static void testGetAsIntegerInt32() {
                   "expect 2's complement representation");
 
     std::int32_t v;
+
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
 
     // IntegerValue(v) with v >= 0
     v = 7;
@@ -559,6 +592,10 @@ static void testGetAsIntegerInt64() {
 
     std::int64_t v;
 
+    v = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsInteger(v));
+    ASSERT_EQUAL(0, v);
+
     // IntegerValue(v) with v >= 0
     v = 7;
     ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x00}.value().getAsInteger(v));
@@ -641,6 +678,73 @@ static void testGetAsIntegerInt64() {
     ASSERT_EQUAL(0, v);
 
     // TODO other types
+}
+
+
+static void testGetAsByteString() {
+    static const std::uint8_t ZERO = 0;
+    const std::uint8_t *p;
+    std::size_t n;
+
+    p = &ZERO;
+    n = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsByteString(p, n));
+    ASSERT_EQUAL(nullptr, p);
+    ASSERT_EQUAL(0, n);
+
+    p = &ZERO;
+    n = 7;
+    {
+        const std::uint8_t buffer[] = {0x40};
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsByteString(p, n));
+        ASSERT_EQUAL(buffer + 1, p);
+        ASSERT_EQUAL(0, n);
+    }
+
+    p = &ZERO;
+    n = 7;
+    {
+        const std::uint8_t buffer[] = {0x43, 0x01, 0x02, 0x03};
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsByteString(p, n));
+        ASSERT_EQUAL(buffer + 1, p);
+        ASSERT_EQUAL(3, n);
+
+        ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
+                     dbor::Value(buffer, sizeof(buffer) - 1).getAsByteString(p, n));
+        ASSERT_EQUAL(nullptr, p);
+        ASSERT_EQUAL(0, n);
+    }
+
+    p = &ZERO;
+    n = 7;
+    {
+        const std::uint8_t buffer[2 + 24] = {0x58, 0x00};
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsByteString(p, n));
+        ASSERT_EQUAL(buffer + 2, p);
+        ASSERT_EQUAL(24, n);
+
+        ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
+                     dbor::Value(buffer, sizeof(buffer) - 1).getAsByteString(p, n));
+        ASSERT_EQUAL(nullptr, p);
+        ASSERT_EQUAL(0, n);
+    }
+
+    // NoneValue
+    p = &ZERO;
+    n = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value().getAsByteString(p, n));
+    ASSERT_EQUAL(nullptr, p);
+    ASSERT_EQUAL(0, n);
+
+    // IntegerValue
+    p = &ZERO;
+    n = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE, ValueBuilder{0x00}.value().getAsByteString(p, n));
+    ASSERT_EQUAL(nullptr, p);
+    ASSERT_EQUAL(0, n);
 }
 
 
@@ -747,6 +851,8 @@ void testValue() {
     testGetAsIntegerInt16();
     testGetAsIntegerInt32();
     testGetAsIntegerInt64();
+
+    testGetAsByteString();
 
     testIsNone();
     testIsNumberlike();
