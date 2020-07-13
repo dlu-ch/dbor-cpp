@@ -347,28 +347,28 @@ static void testGetAsAscii() {
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  (StringBuilder{0xC2, 0x80}).string.getAsAscii(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  (StringBuilder{0xF4, 0x8F, 0xBF, 0xBF}).string.getAsAscii(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  StringBuilder{0x1F}.string.getAsAscii(p, n, true));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  StringBuilder{0x7F}.string.getAsAscii(p, n, true));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
@@ -421,11 +421,11 @@ static void testGetAsUtf8() {
 
     // well-formed ASCII outside specified range
 
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  (StringBuilder{'a', 0xED, 0x9F, 0xBF, 'c'}).string.getAsUtf8(p, n, 'b', 0xD7FF));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
-    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE,
+    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
                  (StringBuilder{'a', 0xED, 0x9F, 0xBF, 'c'}).string.getAsUtf8(p, n, 'a', 0xD7FE));
 
     // ill-formed

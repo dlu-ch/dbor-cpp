@@ -135,7 +135,7 @@ ResultCodes String::getAsAscii(const char *&buffer, std::size_t &size,
                 size = size_;
                 return r;
             }
-            r = ResultCodes::INCOMPATIBLE;
+            r = ResultCodes::RANGE;
         }
     }
 
@@ -160,7 +160,7 @@ ResultCodes String::getAsUtf8(const std::uint8_t *&buffer, std::size_t &size,
                 size = size_;
                 return r;
             }
-            r = ResultCodes::INCOMPATIBLE;
+            r = ResultCodes::RANGE;
         }
     }
 

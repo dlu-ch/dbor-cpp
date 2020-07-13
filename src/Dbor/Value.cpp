@@ -79,13 +79,13 @@ namespace dbor::impl {
         if (firstByte >= 0xFC) {
             switch (firstByte) {
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
-                return ResultCodes::APPROX_PRECISION;
+                return ResultCodes::APPROX_IMPRECISE;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
                 value = std::numeric_limits<T>::min();
-                return ResultCodes::APPROX_RANGE;
+                return ResultCodes::APPROX_EXTREME;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
                 value = std::numeric_limits<T>::max();
-                return ResultCodes::APPROX_RANGE;
+                return ResultCodes::APPROX_EXTREME;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
             default:
                 return ResultCodes::NO_OBJECT;
@@ -121,7 +121,7 @@ namespace dbor::impl {
 
             if (!Encoding::decodeNaturalTokenData(value, &buffer[1], n, 23)) {
                 value = std::numeric_limits<T>::max();
-                return ResultCodes::APPROX_RANGE;
+                return ResultCodes::APPROX_EXTREME;
             }
 
             return ResultCodes::OK;
@@ -129,7 +129,7 @@ namespace dbor::impl {
 
         if (firstByte < 0x40)
             // negative IntegerValue
-            return ResultCodes::APPROX_RANGE;
+            return ResultCodes::APPROX_EXTREME;
 
         return convertNumberlikeToInteger(value, firstByte);
     }
@@ -166,14 +166,14 @@ namespace dbor::impl {
                 // non-negative
                 if (u > static_cast<U>(std::numeric_limits<T>::max())) {
                     value = std::numeric_limits<T>::max();
-                    return ResultCodes::APPROX_RANGE;
+                    return ResultCodes::APPROX_EXTREME;
                 }
                 value = static_cast<T>(u);
             } else {
                 // negative
                 if (u >= -static_cast<U>(std::numeric_limits<T>::min())) {
                     value = std::numeric_limits<T>::min();
-                    return ResultCodes::APPROX_RANGE;
+                    return ResultCodes::APPROX_EXTREME;
                 }
                 // T can represent -(u + 1)
 
@@ -217,7 +217,7 @@ namespace dbor::impl {
 
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
-            e = ResultCodes::APPROX_RANGE;
+            e = ResultCodes::APPROX_EXTREME;
         }
 
         value = v;
@@ -241,10 +241,10 @@ namespace dbor::impl {
         ResultCodes e = getAsSignedInteger(v, buffer, size);
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
-            e = ResultCodes::APPROX_RANGE;
+            e = ResultCodes::APPROX_EXTREME;
         } else if (v < std::numeric_limits<T>::min()) {
             v = std::numeric_limits<T>::min();
-            e = ResultCodes::APPROX_RANGE;
+            e = ResultCodes::APPROX_EXTREME;
         }
 
         value = v;
@@ -355,7 +355,7 @@ ResultCodes Value::getAsUtf8String(String &string, std::size_t maxSize) const no
         // find beginning of truncated code point: is well-formed after truncation if it was before
         stringSize = String::offsetOfLastCodepointIn(p, maxSize + 1);  // maxSize + 1 <= stringSize
         stringSize = stringSize <= maxSize ? stringSize : maxSize;
-        r = ResultCodes::APPROX_RANGE;
+        r = ResultCodes::APPROX_EXTREME;
     }
 
     string = String(p, stringSize);

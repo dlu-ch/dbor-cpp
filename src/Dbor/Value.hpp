@@ -5,7 +5,7 @@
 #ifndef DBOR_VALUE_HPP_
 #define DBOR_VALUE_HPP_
 
-#include "Dbor/Type.hpp"
+#include "Dbor/ResultCodes.hpp"
 #include "Dbor/String.hpp"
 
 namespace dbor {
