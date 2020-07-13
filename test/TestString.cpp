@@ -251,24 +251,24 @@ static void testCheck() {
     n = 7;
     mi = 7;
     ma = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::OK, StringBuilder{}.string.check());
-    ASSERT_EQUAL(dbor::ResultCodes::OK, StringBuilder{}.string.check(n, mi, ma));
+    ASSERT_EQUAL(dbor::ResultCode::OK, StringBuilder{}.string.check());
+    ASSERT_EQUAL(dbor::ResultCode::OK, StringBuilder{}.string.check(n, mi, ma));
     ASSERT_EQUAL(0, n);
     ASSERT_EQUAL(dbor::String::INVALID_CODEPOINT, mi);
     ASSERT_EQUAL(dbor::String::INVALID_CODEPOINT, ma);
 
     // well-formed non-empty
 
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                  (StringBuilder{'a', 0x01, 'Z', 0x7F}).string.check());
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                  (StringBuilder{'a', 0x01, 'Z', 0x7F}).string.check(n, mi, ma));
     ASSERT_EQUAL(4, n);
     ASSERT_EQUAL(0x01, mi);
     ASSERT_EQUAL(0x7F, ma);
 
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                  (StringBuilder{
                     0xED, 0x9F, 0xBF,
                     0x00,
@@ -281,7 +281,7 @@ static void testCheck() {
 
     // ill-formed
 
-    ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED,
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
                  (StringBuilder{
                     0x30,
                     0xF4, 0xFF, 0xBF, 0xBF
@@ -293,12 +293,12 @@ static void testCheck() {
     n = 7;
     mi = 7;
     ma = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED,
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
                  (StringBuilder{
                     0xF0, 0x90, 0x80,
                     0x30
                  }).string.check());
-    ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED,
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
                  (StringBuilder{
                     0xF0, 0x90, 0x80,
                     0x30
@@ -317,28 +317,28 @@ static void testGetAscii() {
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::OK, StringBuilder{}.string.getAscii(p, n));
+    ASSERT_EQUAL(dbor::ResultCode::OK, StringBuilder{}.string.getAscii(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
-    ASSERT_EQUAL(dbor::ResultCodes::OK, StringBuilder{}.string.getAscii(p, n, true));
+    ASSERT_EQUAL(dbor::ResultCode::OK, StringBuilder{}.string.getAscii(p, n, true));
 
     // (printable) ASCII
 
     {
         std::uint8_t buffer[] = {'a', 'b', 'c'};
         dbor::String s(buffer, sizeof(buffer));
-        ASSERT_EQUAL(dbor::ResultCodes::OK, s.getAscii(p, n));
+        ASSERT_EQUAL(dbor::ResultCode::OK, s.getAscii(p, n));
         ASSERT_EQUAL(reinterpret_cast<const char *>(s.buffer()), p);
         ASSERT_EQUAL(3, n);
     }
 
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                 (StringBuilder{0x20, 'a', 0x7F, 'Z', 0x00}).string.getAscii(p, n));
     ASSERT_TRUE(p != nullptr);
     ASSERT_EQUAL(5, n);
 
     p = nullptr;
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                 (StringBuilder{0x20, 'a', 0x7E, 'Z'}).string.getAscii(p, n, true));
     ASSERT_TRUE(p != nullptr);
     ASSERT_EQUAL(4, n);
@@ -347,26 +347,26 @@ static void testGetAscii() {
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE, (StringBuilder{0xC2, 0x80}).string.getAscii(p, n));
+    ASSERT_EQUAL(dbor::ResultCode::RANGE, (StringBuilder{0xC2, 0x80}).string.getAscii(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
+    ASSERT_EQUAL(dbor::ResultCode::RANGE,
                  (StringBuilder{0xF4, 0x8F, 0xBF, 0xBF}).string.getAscii(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE, StringBuilder{0x1F}.string.getAscii(p, n, true));
+    ASSERT_EQUAL(dbor::ResultCode::RANGE, StringBuilder{0x1F}.string.getAscii(p, n, true));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE, StringBuilder{0x7F}.string.getAscii(p, n, true));
+    ASSERT_EQUAL(dbor::ResultCode::RANGE, StringBuilder{0x7F}.string.getAscii(p, n, true));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
 
@@ -374,7 +374,7 @@ static void testGetAscii() {
 
     p = "";
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED,
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
                  (StringBuilder{0xF4, 0x8F, 0xBF}).string.getAscii(p, n));
     ASSERT_EQUAL(0, n);
     ASSERT_EQUAL(nullptr, p);
@@ -390,10 +390,10 @@ static void testGetUtf8() {
 
     p = &b;
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::OK, StringBuilder{}.string.getUtf8(p, n, 0, 0x10FFFF));
+    ASSERT_EQUAL(dbor::ResultCode::OK, StringBuilder{}.string.getUtf8(p, n, 0, 0x10FFFF));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                  StringBuilder{}.string.getUtf8(p, n, dbor::String::INVALID_CODEPOINT, 0));
 
     // well-formed ASCII in specified range
@@ -406,30 +406,30 @@ static void testGetUtf8() {
             0xDF, 0xBF
         };
         dbor::String s(buffer, sizeof(buffer));
-        ASSERT_EQUAL(dbor::ResultCodes::OK, s.getUtf8(p, n, 0, 0x10FFFF));
+        ASSERT_EQUAL(dbor::ResultCode::OK, s.getUtf8(p, n, 0, 0x10FFFF));
         ASSERT_EQUAL(s.buffer(), p);
         ASSERT_EQUAL(10, n);
     }
 
-    ASSERT_EQUAL(dbor::ResultCodes::OK,
+    ASSERT_EQUAL(dbor::ResultCode::OK,
                  (StringBuilder{'a', 0xED, 0x9F, 0xBF, 'c'}).string.getUtf8(p, n, 'a', 0xD7FF));
     ASSERT_TRUE(p != nullptr);
     ASSERT_EQUAL(5, n);
 
     // well-formed ASCII outside specified range
 
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
+    ASSERT_EQUAL(dbor::ResultCode::RANGE,
                  (StringBuilder{'a', 0xED, 0x9F, 0xBF, 'c'}).string.getUtf8(p, n, 'b', 0xD7FF));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
-    ASSERT_EQUAL(dbor::ResultCodes::RANGE,
+    ASSERT_EQUAL(dbor::ResultCode::RANGE,
                  (StringBuilder{'a', 0xED, 0x9F, 0xBF, 'c'}).string.getUtf8(p, n, 'a', 0xD7FE));
 
     // ill-formed
 
     p = &b;
     n = 7;
-    ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED,
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
                  (StringBuilder{0xF4, 0x8F, 0xBF}).string.getUtf8(p, n, 0, 0x10FFFF));
     ASSERT_EQUAL(0, n);
     ASSERT_EQUAL(nullptr, p);

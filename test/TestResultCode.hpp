@@ -2,9 +2,9 @@
 // dbor-c++ - C++ implementation of DBOR encoder and decoder
 // Copyright (C) 2020 Daniel Lutz <dlu-ch@users.noreply.github.com>
 
-#ifndef TEST_RESULTCODES_HPP_
-#define TEST_RESULTCODES_HPP_
+#ifndef TEST_RESULTCODE_HPP_
+#define TEST_RESULTCODE_HPP_
 
-void testResultCodes();
+void testResultCode();
 
-#endif  // TEST_RESULTCODES_HPP_
+#endif  // TEST_RESULTCODE_HPP_

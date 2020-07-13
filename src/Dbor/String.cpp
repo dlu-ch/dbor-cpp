@@ -120,22 +120,22 @@ String::String(const uint8_t *buffer, std::size_t size) noexcept
 }
 
 
-ResultCodes String::getAscii(const char *&buffer, std::size_t &size,
-                             bool printableOnly) const noexcept
+ResultCode String::getAscii(const char *&buffer, std::size_t &size,
+                            bool printableOnly) const noexcept
 {
-    ResultCodes r = ResultCodes::OK;
+    ResultCode r = ResultCode::OK;
 
     if (size_) {
         std::size_t n;
         CodePoint minCodePoint, maxCodePoint;
         r = checkNonEmpty(n, minCodePoint, maxCodePoint);
-        if (r == ResultCodes::OK) {
+        if (r == ResultCode::OK) {
             if (printableOnly ? minCodePoint >= 0x20 && maxCodePoint < 0x7F : maxCodePoint < 0x80) {
                 buffer = reinterpret_cast<const char *>(buffer_);  // may be nullptr
                 size = size_;
                 return r;
             }
-            r = ResultCodes::RANGE;
+            r = ResultCode::RANGE;
         }
     }
 
@@ -145,22 +145,22 @@ ResultCodes String::getAscii(const char *&buffer, std::size_t &size,
 }
 
 
-ResultCodes String::getUtf8(const std::uint8_t *&buffer, std::size_t &size,
-                            CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept
+ResultCode String::getUtf8(const std::uint8_t *&buffer, std::size_t &size,
+                           CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept
 {
-    ResultCodes r = ResultCodes::OK;
+    ResultCode r = ResultCode::OK;
 
     if (size_) {
         std::size_t n;
         CodePoint minc, maxc;
         r = checkNonEmpty(n, minc, maxc);
-        if (r == ResultCodes::OK) {
+        if (r == ResultCode::OK) {
             if (minc >= minCodePoint && maxc <= maxCodePoint) {
                 buffer = buffer_;  // may be nullptr
                 size = size_;
                 return r;
             }
-            r = ResultCodes::RANGE;
+            r = ResultCode::RANGE;
         }
     }
 
@@ -170,9 +170,9 @@ ResultCodes String::getUtf8(const std::uint8_t *&buffer, std::size_t &size,
 }
 
 
-ResultCodes String::checkNonEmpty(std::size_t &count,
-                                  CodePoint &minCodePoint,
-                                  CodePoint &maxCodePoint) const noexcept
+ResultCode String::checkNonEmpty(std::size_t &count,
+                                 CodePoint &minCodePoint,
+                                 CodePoint &maxCodePoint) const noexcept
 {
     CodePoint minc = String::INVALID_CODEPOINT;
     CodePoint maxc = 0;
@@ -188,7 +188,7 @@ ResultCodes String::checkNonEmpty(std::size_t &count,
             count = 0;
             minCodePoint = String::INVALID_CODEPOINT;
             maxCodePoint = String::INVALID_CODEPOINT;
-            return ResultCodes::ILLFORMED;
+            return ResultCode::ILLFORMED;
         }
         // len <= unprocessed
         // c <= 0x10FFFF
@@ -206,27 +206,27 @@ ResultCodes String::checkNonEmpty(std::size_t &count,
             count = n;
             minCodePoint = minc;
             maxCodePoint = maxc;
-            return ResultCodes::OK;
+            return ResultCode::OK;
         }
     }
 }
 
 
-ResultCodes String::check(std::size_t &count,
-                          CodePoint &minCodePoint, CodePoint &maxCodePoint) const noexcept
+ResultCode String::check(std::size_t &count,
+                         CodePoint &minCodePoint, CodePoint &maxCodePoint) const noexcept
 {
     if (!size_) {
         count = 0;
         minCodePoint = String::INVALID_CODEPOINT;
         maxCodePoint = String::INVALID_CODEPOINT;
-        return ResultCodes::OK;
+        return ResultCode::OK;
     }
 
     return checkNonEmpty(count, minCodePoint, maxCodePoint);
 }
 
 
-ResultCodes String::check() const noexcept {
+ResultCode String::check() const noexcept {
     std::size_t count;
     CodePoint minCodePoint, maxCodePoint;
     return check(count, minCodePoint, maxCodePoint);

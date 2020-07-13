@@ -6,7 +6,7 @@
 #define DBOR_STRING_HPP_
 
 #include <cstdint>
-#include "Dbor/ResultCodes.hpp"
+#include "Dbor/ResultCode.hpp"
 
 namespace dbor {
 
@@ -37,32 +37,32 @@ namespace dbor {
         std::size_t size() const noexcept;  // = 0 if and only if buffer() = nullptr
 
         // minCodePoint, maxCodePoint are the minimum and maximum code point, respectively,
-        // if ResultCodes::OK and size() > 0, and INVALID_CODEPOINT otherwise.
-        // ResultCodes::OK or ResultCodes::ILLFORMED.
-        ResultCodes check(std::size_t &count, CodePoint &minCodePoint,
-                          CodePoint &maxCodePoint) const noexcept;
-        ResultCodes check() const noexcept;
+        // if ResultCode::OK and size() > 0, and INVALID_CODEPOINT otherwise.
+        // ResultCode::OK or ResultCode::ILLFORMED.
+        ResultCode check(std::size_t &count, CodePoint &minCodePoint,
+                         CodePoint &maxCodePoint) const noexcept;
+        ResultCode check() const noexcept;
 
         // p[0] ... p[size - 1] is an ASCII string of characters with ASCII code in the
         // range 0x20 ... 0x7F if printableOnly is true and in the range 0x00 ... 0x7F otherwise.
         // p is not necessarily NUL terminated.
-        // ResultCodes::OK, ResultCodes::ILLFORMED, ResultCodes::RANGE.
-        ResultCodes getAscii(const char *&buffer, std::size_t &size,
-                             bool printableOnly = false) const noexcept;
+        // ResultCode::OK, ResultCode::ILLFORMED, ResultCode::RANGE.
+        ResultCode getAscii(const char *&buffer, std::size_t &size,
+                            bool printableOnly = false) const noexcept;
 
         // p[0] ... p[size - 1] is a well-formed UTF-8 string of (valid) code points
         // in the range minCodePoint .. maxCodePoint.
         // p is not necessarily NUL terminated.
-        // ResultCodes::OK, ResultCodes::ILLFORMED, ResultCodes::RANGE.
-        ResultCodes getUtf8(const std::uint8_t *&buffer, std::size_t &size,
-                            CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept;
+        // ResultCode::OK, ResultCode::ILLFORMED, ResultCode::RANGE.
+        ResultCode getUtf8(const std::uint8_t *&buffer, std::size_t &size,
+                           CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept;
 
     protected:
         static CodePoint firstCodepointInNonEmpty(const std::uint8_t *p, std::size_t capacity,
                                                   std::size_t &size) noexcept;
 
-        ResultCodes checkNonEmpty(std::size_t &count,
-                                  CodePoint &minCodePoint, CodePoint &maxCodePoint) const noexcept;
+        ResultCode checkNonEmpty(std::size_t &count,
+                                 CodePoint &minCodePoint, CodePoint &maxCodePoint) const noexcept;
 
         const std::uint8_t *buffer_;
         std::size_t size_;  // number of bytes

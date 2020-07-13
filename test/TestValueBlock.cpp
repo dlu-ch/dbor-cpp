@@ -221,7 +221,7 @@ static void testChainedDecoding() {
     ASSERT_EQUAL(buffer, iter->buffer());
 
     std::uint8_t a, b, c;
-    dbor::ResultCodes results =
+    dbor::ResultCodeSet results =
                iter->get(a)
         << (++iter)->get(b)
         << (++iter)->get(c);
@@ -230,10 +230,10 @@ static void testChainedDecoding() {
     ASSERT_EQUAL(12, b);
     ASSERT_EQUAL(0xFF, c);
 
-    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT << dbor::ResultCodes::APPROX_EXTREME, results);
+    ASSERT_EQUAL(dbor::ResultCode::NO_OBJECT << dbor::ResultCode::APPROX_EXTREME, results);
     ASSERT_TRUE(!isOk(results));
     ASSERT_TRUE(isOkExcept(results,
-                           dbor::ResultCodes::NO_OBJECT << dbor::ResultCodes::APPROX_EXTREME));
+                           dbor::ResultCode::NO_OBJECT << dbor::ResultCode::APPROX_EXTREME));
 }
 
 
