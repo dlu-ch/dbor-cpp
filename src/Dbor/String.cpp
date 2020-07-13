@@ -123,6 +123,8 @@ String::String(const uint8_t *buffer, std::size_t size) noexcept
 ResultCode String::getAscii(const char *&buffer, std::size_t &size,
                             bool printableOnly) const noexcept
 {
+    // C++:2011: char is at least 7 bit (signed or unsigned)
+
     ResultCode r = ResultCode::OK;
 
     if (size_) {
@@ -131,6 +133,7 @@ ResultCode String::getAscii(const char *&buffer, std::size_t &size,
         r = checkNonEmpty(n, minCodePoint, maxCodePoint);
         if (r == ResultCode::OK) {
             if (printableOnly ? minCodePoint >= 0x20 && maxCodePoint < 0x7F : maxCodePoint < 0x80) {
+                static_assert(sizeof(char) == sizeof(std::uint8_t), "");
                 buffer = reinterpret_cast<const char *>(buffer_);  // may be nullptr
                 size = size_;
                 return r;

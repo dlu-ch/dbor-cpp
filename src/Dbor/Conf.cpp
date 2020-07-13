@@ -10,3 +10,6 @@ static_assert(sizeof(std::uint16_t) == 2, "");
 static_assert(sizeof(std::uint32_t) == 4, "");
 
 static_assert(sizeof(std::size_t) == 2 || sizeof(std::size_t) == 4 || sizeof(std::size_t) == 8, "");
+
+// each UTF-8 encoded std::uint8_t * with code points < 0x80 is a char *:
+static_assert(sizeof(char) == sizeof(std::uint8_t), "");
