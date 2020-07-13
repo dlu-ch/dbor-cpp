@@ -47,15 +47,15 @@ namespace dbor {
         // range 0x20 ... 0x7F if printableOnly is true and in the range 0x00 ... 0x7F otherwise.
         // p is not necessarily NUL terminated.
         // ResultCodes::OK, ResultCodes::ILLFORMED, ResultCodes::RANGE.
-        ResultCodes getAsAscii(const char *&buffer, std::size_t &size,
-                               bool printableOnly = false) const noexcept;
+        ResultCodes getAscii(const char *&buffer, std::size_t &size,
+                             bool printableOnly = false) const noexcept;
 
         // p[0] ... p[size - 1] is a well-formed UTF-8 string of (valid) code points
         // in the range minCodePoint .. maxCodePoint.
         // p is not necessarily NUL terminated.
         // ResultCodes::OK, ResultCodes::ILLFORMED, ResultCodes::RANGE.
-        ResultCodes getAsUtf8(const std::uint8_t *&buffer, std::size_t &size,
-                              CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept;
+        ResultCodes getUtf8(const std::uint8_t *&buffer, std::size_t &size,
+                            CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept;
 
     protected:
         static CodePoint firstCodepointInNonEmpty(const std::uint8_t *p, std::size_t capacity,

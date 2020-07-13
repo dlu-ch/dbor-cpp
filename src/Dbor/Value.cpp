@@ -9,7 +9,7 @@
 #include "Dbor/Encoding.hpp"
 
 // Design decisions:
-// - Optimize for use case where getAsXXX() is called on most dbor::Value instances
+// - Optimize for use case where get() is called on most dbor::Value instances
 // - Do not call Encoding::sizeOfValueIn() after construction
 // - Avoid type detection, use duck typing approach
 // - Do not access bytes outside buffer_[0] ... buffer_[size_ - 1] even if buffer changes between
@@ -96,8 +96,8 @@ namespace dbor::impl {
     }
 
     template<typename T>  // T: e.g. std::uint32_t
-    static ResultCodes getAsUnsignedInteger(T &value,
-                                            const std::uint8_t *buffer, std::size_t size)
+    static ResultCodes getUnsignedInteger(T &value,
+                                          const std::uint8_t *buffer, std::size_t size)
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -136,7 +136,7 @@ namespace dbor::impl {
 
 
     template<typename T>  // T: e.g. std::int32_t
-    static ResultCodes getAsSignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    static ResultCodes getSignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
         typedef typename std::make_unsigned<T>::type U;
@@ -200,8 +200,8 @@ namespace dbor::impl {
 
 
     template<typename T>  // T: e.g. std::uint8_t
-    ResultCodes getAsUnsignedIntegerFromBigger(T &value,
-                                              const std::uint8_t *buffer, std::size_t size)
+    ResultCodes getUnsignedIntegerFromBigger(T &value,
+                                             const std::uint8_t *buffer, std::size_t size)
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -212,7 +212,7 @@ namespace dbor::impl {
             std::uint64_t v;
         #endif
 
-        ResultCodes e = getAsUnsignedInteger(v, buffer, size);
+        ResultCodes e = getUnsignedInteger(v, buffer, size);
         static_assert(sizeof(value) <= sizeof(v), "");
 
         if (v > std::numeric_limits<T>::max()) {
@@ -226,8 +226,8 @@ namespace dbor::impl {
 
 
     template<typename T>  // T: e.g. std::int8_t
-    ResultCodes getAsSignedIntegerFromBigger(T &value,
-                                            const std::uint8_t *buffer, std::size_t size)
+    ResultCodes getSignedIntegerFromBigger(T &value,
+                                           const std::uint8_t *buffer, std::size_t size)
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
@@ -238,7 +238,7 @@ namespace dbor::impl {
             std::int64_t v;
         #endif
 
-        ResultCodes e = getAsSignedInteger(v, buffer, size);
+        ResultCodes e = getSignedInteger(v, buffer, size);
         if (v > std::numeric_limits<T>::max()) {
             v = std::numeric_limits<T>::max();
             e = ResultCodes::APPROX_EXTREME;
@@ -254,57 +254,55 @@ namespace dbor::impl {
 }
 
 
-ResultCodes Value::getAsInteger(std::uint8_t &value) const noexcept {
-    return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
+ResultCodes Value::get(std::uint8_t &value) const noexcept {
+    return impl::getUnsignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsInteger(std::uint16_t &value) const noexcept {
-    return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
+ResultCodes Value::get(std::uint16_t &value) const noexcept {
+    return impl::getUnsignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsInteger(std::uint32_t &value) const noexcept {
+ResultCodes Value::get(std::uint32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
-        return impl::getAsUnsignedIntegerFromBigger(value, buffer_, size_);
+        return impl::getUnsignedIntegerFromBigger(value, buffer_, size_);
     #else
-        return impl::getAsUnsignedInteger(value, buffer_, size_);
+        return impl::getUnsignedInteger(value, buffer_, size_);
     #endif
 }
 
 
-ResultCodes Value::getAsInteger(std::uint64_t &value) const noexcept {
-    return impl::getAsUnsignedInteger(value, buffer_, size_);
+ResultCodes Value::get(std::uint64_t &value) const noexcept {
+    return impl::getUnsignedInteger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsInteger(std::int8_t &value) const noexcept {
-    return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
+ResultCodes Value::get(std::int8_t &value) const noexcept {
+    return impl::getSignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsInteger(std::int16_t &value) const noexcept {
-    return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
+ResultCodes Value::get(std::int16_t &value) const noexcept {
+    return impl::getSignedIntegerFromBigger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsInteger(std::int32_t &value) const noexcept {
+ResultCodes Value::get(std::int32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
-        return impl::getAsSignedIntegerFromBigger(value, buffer_, size_);
+        return impl::getSignedIntegerFromBigger(value, buffer_, size_);
     #else
-        return impl::getAsSignedInteger(value, buffer_, size_);
+        return impl::getSignedInteger(value, buffer_, size_);
     #endif
 }
 
 
-ResultCodes Value::getAsInteger(std::int64_t &value) const noexcept {
-    return impl::getAsSignedInteger(value, buffer_, size_);
+ResultCodes Value::get(std::int64_t &value) const noexcept {
+    return impl::getSignedInteger(value, buffer_, size_);
 }
 
 
-ResultCodes Value::getAsByteString(const std::uint8_t *&bytes,
-                                   std::size_t &stringSize) const noexcept
-{
+ResultCodes Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const noexcept {
     bytes = nullptr;
     stringSize = 0;
 
@@ -328,7 +326,7 @@ ResultCodes Value::getAsByteString(const std::uint8_t *&bytes,
 }
 
 
-ResultCodes Value::getAsUtf8String(String &string, std::size_t maxSize) const noexcept {
+ResultCodes Value::get(String &string, std::size_t maxSize) const noexcept {
     // maxSize limits the number of instructions for string.check()
 
     string = String();

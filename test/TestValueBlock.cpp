@@ -222,9 +222,9 @@ static void testChainedDecoding() {
 
     std::uint8_t a, b, c;
     dbor::ResultCodes results =
-             (iter)->getAsInteger(a)
-        << (++iter)->getAsInteger(b)
-        << (++iter)->getAsInteger(c);
+               iter->get(a)
+        << (++iter)->get(b)
+        << (++iter)->get(c);
 
     ASSERT_EQUAL(0, a);
     ASSERT_EQUAL(12, b);

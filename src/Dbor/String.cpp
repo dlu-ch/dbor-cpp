@@ -120,8 +120,8 @@ String::String(const uint8_t *buffer, std::size_t size) noexcept
 }
 
 
-ResultCodes String::getAsAscii(const char *&buffer, std::size_t &size,
-                               bool printableOnly) const noexcept
+ResultCodes String::getAscii(const char *&buffer, std::size_t &size,
+                             bool printableOnly) const noexcept
 {
     ResultCodes r = ResultCodes::OK;
 
@@ -145,8 +145,8 @@ ResultCodes String::getAsAscii(const char *&buffer, std::size_t &size,
 }
 
 
-ResultCodes String::getAsUtf8(const std::uint8_t *&buffer, std::size_t &size,
-                              CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept
+ResultCodes String::getUtf8(const std::uint8_t *&buffer, std::size_t &size,
+                            CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept
 {
     ResultCodes r = ResultCodes::OK;
 
