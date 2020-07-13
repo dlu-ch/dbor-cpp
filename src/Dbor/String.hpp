@@ -25,6 +25,8 @@ namespace dbor {
         // Empty if and only if p = nullptr or capacity = 0.
         static CodePoint firstCodepointIn(const std::uint8_t *p, std::size_t capacity,
                                           std::size_t &size) noexcept;
+        static std::size_t offsetOfLastCodepointIn(const std::uint8_t *p,
+                                                   std::size_t capacity) noexcept;
 
         String() noexcept;  // empty
         String(const uint8_t *buffer, std::size_t size) noexcept;  // safe to use with any content

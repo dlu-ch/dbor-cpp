@@ -326,3 +326,38 @@ ResultCodes Value::getAsByteString(const std::uint8_t *&bytes,
     bytes = &buffer_[sizeOfFirstToken];
     return ResultCodes::OK;
 }
+
+
+ResultCodes Value::getAsUtf8String(String &string, std::size_t maxSize) const noexcept {
+    // maxSize limits the number of instructions for string.check()
+
+    string = String();
+
+    if (!isComplete_)
+        return ResultCodes::INCOMPLETE;
+
+    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
+        return ResultCodes::NO_OBJECT;
+
+    if (buffer_[0] < 0x60 || buffer_[0] >= 0x80)
+        return ResultCodes::INCOMPATIBLE;
+
+    // Utf8StringValue
+    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
+    if (size_ < sizeOfFirstToken)
+        return ResultCodes::INCOMPLETE;
+
+    std::size_t stringSize = size_ - sizeOfFirstToken;
+    const std::uint8_t *p = &buffer_[sizeOfFirstToken];
+    ResultCodes r = ResultCodes::OK;
+
+    if (stringSize > maxSize) {
+        // find beginning of truncated code point: is well-formed after truncation if it was before
+        stringSize = String::offsetOfLastCodepointIn(p, maxSize + 1);  // maxSize + 1 <= stringSize
+        stringSize = stringSize <= maxSize ? stringSize : maxSize;
+        r = ResultCodes::APPROX_RANGE;
+    }
+
+    string = String(p, stringSize);
+    return r;
+}

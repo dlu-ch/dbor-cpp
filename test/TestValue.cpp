@@ -737,6 +737,139 @@ static void testGetAsByteString() {
     ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE, ValueBuilder{0x00}.value.getAsByteString(p, n));
     ASSERT_EQUAL(nullptr, p);
     ASSERT_EQUAL(0, n);
+
+    // Utf8StringValue
+    p = &ZERO;
+    n = 7;
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE, ValueBuilder{0x60}.value.getAsByteString(p, n));
+    ASSERT_EQUAL(nullptr, p);
+    ASSERT_EQUAL(0, n);
+}
+
+
+static void testGetAsUtf8String() {
+    dbor::String s;
+
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE, dbor::Value().getAsUtf8String(s, 10));
+    ASSERT_EQUAL(0u, s.size());
+
+    ASSERT_EQUAL(dbor::ResultCodes::OK, ValueBuilder{0x60}.value.getAsUtf8String(s, 100));
+    ASSERT_EQUAL(0, s.size());
+
+    {
+        const std::uint8_t buffer[] = {0x67, 0x01, 0xF0, 0x90, 0x80, 0x80, 0x02, 0x03};
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 100));
+        ASSERT_EQUAL(buffer + 1, s.buffer());
+        ASSERT_EQUAL(7, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
+                     dbor::Value(buffer, sizeof(buffer) - 1).getAsUtf8String(s, 100));
+        ASSERT_EQUAL(0u, s.size());
+    }
+
+    {
+        const std::uint8_t buffer[2 + 24] = {0x78, 0x00};
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 24));
+        ASSERT_EQUAL(buffer + 2, s.buffer());
+        ASSERT_EQUAL(24, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::INCOMPLETE,
+                     dbor::Value(buffer, sizeof(buffer) - 1).getAsUtf8String(s, 100));
+        ASSERT_EQUAL(0u, s.size());
+    }
+
+    // truncated well-formed
+
+    {
+        const std::uint8_t buffer[] = {
+            0x6A,
+            0x20,
+            0xC2, 0x80,
+            0xF0, 0x90, 0x80, 0x80,
+            0xED, 0x9F, 0xBF
+        };
+
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 10));
+        ASSERT_EQUAL(buffer + 1, s.buffer());
+        ASSERT_EQUAL(10, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 9));
+        ASSERT_EQUAL(buffer + 1, s.buffer());
+        ASSERT_EQUAL(7, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 8));
+        ASSERT_EQUAL(7, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 7));
+        ASSERT_EQUAL(7, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 6));
+        ASSERT_EQUAL(3, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 4));
+        ASSERT_EQUAL(3, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 2));
+        ASSERT_EQUAL(1, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 0));
+        ASSERT_EQUAL(0, s.size());
+    }
+
+    // truncated ill-formed
+
+    {
+        const std::uint8_t buffer[] = {
+            0x68,
+            0xF4, 0x8F, 0xBF, 0x00,
+            0xF4, 0x90, 0x80, 0x80
+        };
+
+        ASSERT_EQUAL(dbor::ResultCodes::OK,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 8));
+        ASSERT_EQUAL(buffer + 1, s.buffer());
+        ASSERT_EQUAL(8, s.size());
+        ASSERT_EQUAL(dbor::ResultCodes::ILLFORMED, s.check());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 7));
+        ASSERT_EQUAL(buffer + 1, s.buffer());
+        ASSERT_EQUAL(4, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 3));
+        ASSERT_EQUAL(3, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 3));
+        ASSERT_EQUAL(3, s.size());
+
+        ASSERT_EQUAL(dbor::ResultCodes::APPROX_RANGE,
+                     dbor::Value(buffer, sizeof(buffer)).getAsUtf8String(s, 2));
+        ASSERT_EQUAL(0, s.size());
+    }
+
+    // NoneValue
+    ASSERT_EQUAL(dbor::ResultCodes::NO_OBJECT, ValueBuilder{0xFF}.value.getAsUtf8String(s, 100));
+    ASSERT_EQUAL(0u, s.size());
+
+    // IntegerValue
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE, ValueBuilder{0x00}.value.getAsUtf8String(s, 100));
+    ASSERT_EQUAL(0u, s.size());
+
+    // ByteStringValue
+    ASSERT_EQUAL(dbor::ResultCodes::INCOMPATIBLE, ValueBuilder{0x40}.value.getAsUtf8String(s, 100));
+    ASSERT_EQUAL(0u, s.size());
 }
 
 
@@ -845,6 +978,7 @@ void testValue() {
     testGetAsIntegerInt64();
 
     testGetAsByteString();
+    testGetAsUtf8String();
 
     testIsNone();
     testIsNumberlike();

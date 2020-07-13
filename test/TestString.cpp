@@ -51,7 +51,7 @@ static void testFirstCodepointIn() {
         dbor::String::CodePoint firstCodepointIn(std::size_t &n) const noexcept {
             return dbor::String::firstCodepointIn(buffer(), size(), n);
         }
-   };
+    };
 
     std::size_t n;
 
@@ -169,6 +169,53 @@ static void testFirstCodepointIn() {
     ASSERT_EQUAL(dbor::String::INVALID_CODEPOINT,
                  (Builder{0xF0, 0x80, 0x80, 0x80}).firstCodepointIn(n));
     ASSERT_EQUAL(4, n);
+}
+
+
+static void testOffsetOfLastCodepointIn() {
+
+    struct Builder: public test::ByteBufferBuilder {
+        Builder(std::initializer_list<std::uint8_t> bytes) : test::ByteBufferBuilder(bytes) {}
+
+        dbor::String::CodePoint offsetOfLastCodepointIn() const noexcept {
+            return dbor::String::offsetOfLastCodepointIn(buffer(), size());
+        }
+    };
+
+    // empty
+
+    ASSERT_EQUAL(0u, dbor::String::offsetOfLastCodepointIn(nullptr, 1));
+    ASSERT_EQUAL(0u, Builder{}.offsetOfLastCodepointIn());
+
+    // well-formed
+
+    ASSERT_EQUAL(0u, Builder{0x00}.offsetOfLastCodepointIn());
+    ASSERT_EQUAL(0u, (Builder{0xF4, 0x8F, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x7F, 0xF4, 0x8F, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+
+    // truncated well-formed
+
+    ASSERT_EQUAL(1u, (Builder{0x7F, 0xF4, 0x8F, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x7F, 0xF4, 0x8F}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x7F, 0xF4}).offsetOfLastCodepointIn());
+
+    // ill-formed
+
+    ASSERT_EQUAL(2u, (Builder{0x7F, 0xF4, 0x8F, 0xBF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(2u, (Builder{0x7F, 0xBF, 0xBF, 0xBF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x7F, 0xBF, 0xBF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(0u, (Builder{0xBF, 0xBF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(0u, (Builder{0xBF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(0u, Builder{0x80}.offsetOfLastCodepointIn());
+
+    ASSERT_EQUAL(1u, (Builder{0xBF, 0xC0, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0xBF, 0xFF, 0xBF, 0xBF}).offsetOfLastCodepointIn());
+
+    ASSERT_EQUAL(1u, (Builder{0x01, 0b11000000}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x01, 0b11100000}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x01, 0b11110000}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x01, 0b11111000}).offsetOfLastCodepointIn());
+    ASSERT_EQUAL(1u, (Builder{0x01, 0b11111100}).offsetOfLastCodepointIn())
 }
 
 
@@ -395,6 +442,7 @@ static void testGetAsUtf8() {
 void testString() {
     testSizeOfUtf8ForCodepoint();
     testFirstCodepointIn();
+    testOffsetOfLastCodepointIn();
 
     testDefaultConstructedIsEmpty();
     testIsEmptyWithoutBuffer();

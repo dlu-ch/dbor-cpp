@@ -6,13 +6,14 @@
 #define DBOR_VALUE_HPP_
 
 #include "Dbor/Type.hpp"
+#include "Dbor/String.hpp"
 
 namespace dbor {
 
     class Value {
     public:
-        Value() noexcept;  // incomplete
-        Value(const uint8_t *buffer, std::size_t capacity) noexcept;
+        Value() noexcept;  // incomplete with size() = 0
+        Value(const uint8_t *buffer, std::size_t capacity) noexcept;  // first in buffer
         Value(const Value &) noexcept = default;
         Value &operator=(const Value &) noexcept = default;
 
@@ -26,6 +27,8 @@ namespace dbor {
         bool isString() const noexcept;  // well-formed or ill-formed/incomplete
         bool isContainer() const noexcept;  // well-formed or ill-formed/incomplete
 
+        // TODO rename all getAsXXX() to get()
+
         ResultCodes getAsInteger(std::uint8_t &value) const noexcept;
         ResultCodes getAsInteger(std::uint16_t &value) const noexcept;
         ResultCodes getAsInteger(std::uint32_t &value) const noexcept;
@@ -36,8 +39,11 @@ namespace dbor {
         ResultCodes getAsInteger(std::int32_t &value) const noexcept;
         ResultCodes getAsInteger(std::int64_t &value) const noexcept;
 
-        ResultCodes getAsByteString(const std::uint8_t *&bytes,
-                                    std::size_t &size) const noexcept;
+        ResultCodes getAsByteString(const std::uint8_t *&bytes, std::size_t &size) const noexcept;
+
+        // ResultCodes::OK does not mean that this value is a well-formed Utf8StringValue.
+        // Use string.check() or string.getAsXXX() in addition.
+        ResultCodes getAsUtf8String(String &string, std::size_t maxSize) const noexcept;
 
     protected:
         const uint8_t *buffer_;

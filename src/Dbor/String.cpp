@@ -89,6 +89,23 @@ String::CodePoint String::firstCodepointInNonEmpty(const std::uint8_t *p, std::s
 }
 
 
+std::size_t String::offsetOfLastCodepointIn(const std::uint8_t *p,
+                                            std::size_t capacity) noexcept
+{
+    if (!p || !capacity)
+        return 0;
+
+    std::size_t offset = capacity - 1u;
+
+    // at most 3 bytes back until p[offset] is other than 10xxxxxx
+    std::uint_fast8_t n = offset < 3 ? offset : 3;
+    while (n-- > 0 && (p[offset] & 0xC0) == 0x80)
+        offset--;
+
+    return offset;
+}
+
+
 String::String() noexcept
     : buffer_(nullptr)
     , size_(0)
