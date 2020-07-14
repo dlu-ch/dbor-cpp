@@ -7,7 +7,7 @@
 #include "Dbor/Encoding.hpp"
 
 
-static void testEncodingSizeOfTokenFromFirstByte() {
+static void testSizeOfTokenFromFirstByte() {
     // IntegerValue
     ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x00));
     ASSERT_EQUAL(1, dbor::Encoding::sizeOfTokenFromFirstByte(0x17));
@@ -48,7 +48,7 @@ static void testEncodingSizeOfTokenFromFirstByte() {
 }
 
 
-static void testEncodingSizeOfValueIn() {
+static void testSizeOfValueIn() {
     ASSERT_EQUAL(0, dbor::Encoding::sizeOfValueIn(nullptr, 0u));
 
     // IntegerValue
@@ -201,7 +201,7 @@ static void testEncodingSizeOfValueIn() {
 }
 
 
-static void testEncodingDecodeNaturalTokenData16() {
+static void testDecodeNaturalTokenData16() {
     {
         std::uint16_t value = 7;
         ASSERT_EQUAL(false,
@@ -239,7 +239,7 @@ static void testEncodingDecodeNaturalTokenData16() {
 }
 
 
-static void testEncodingDecodeNaturalTokenData32() {
+static void testDecodeNaturalTokenData32() {
     {
         std::uint32_t value = 7;
         ASSERT_EQUAL(false,
@@ -277,7 +277,7 @@ static void testEncodingDecodeNaturalTokenData32() {
 }
 
 
-static void testEncodingDecodeNaturalTokenData64() {
+static void testDecodeNaturalTokenData64() {
     {
         std::uint64_t value = 7;
         ASSERT_EQUAL(false,
@@ -324,7 +324,7 @@ static void testEncodingDecodeNaturalTokenData64() {
 }
 
 
-static void testEncodingEncodeNaturalTokenData16() {
+static void testEncodeNaturalTokenData16() {
     {
         std::uint16_t value = 0;
         std::uint8_t buffer[] = {7};
@@ -353,7 +353,7 @@ static void testEncodingEncodeNaturalTokenData16() {
 }
 
 
-static void testEncodingEncodeNaturalTokenData32() {
+static void testEncodeNaturalTokenData32() {
     {
         std::uint32_t value = 0;
         std::uint8_t buffer[] = {7};
@@ -384,7 +384,7 @@ static void testEncodingEncodeNaturalTokenData32() {
 }
 
 
-static void testEncodingEncodeNaturalTokenData64() {
+static void testEncodeNaturalTokenData64() {
     {
         std::uint64_t value = 0;
         std::uint8_t buffer[] = {7};
@@ -472,15 +472,217 @@ static void testEncodingEncodeNaturalTokenData64() {
 }
 
 
+static void testDecodeBinaryRationalTokenDataAs32b() {
+    std::uint32_t v;
+
+    const auto decode = dbor::Encoding::decodeBinaryRationalTokenDataAs32b;
+
+    // k = 0
+    // r = 3
+    // p = 4
+    // e = E - 2^(r-1) + 1 = E - 3
+
+    // 2^-3                              sEEEMMMM
+    v = decode(test::ByteBufferBuilder{0b00000000}.buffer, 0);
+    ASSERT_EQUAL(0b00111110000000000000000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = -3 + 127 = 0x7C
+
+    // -(1 + 0b1111 / 2^4) * 2^4         sEEEMMMM
+    v = decode(test::ByteBufferBuilder{0b11111111}.buffer, 0);
+    ASSERT_EQUAL(0b11000001111110000000000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = 4 + 127 = 0x83
+
+    // k = 1
+    // r = 5
+    // p = 10
+    // e = E - 2^(r-1) + 1 = E - 15
+
+    // 2^-15                             MMMMMMMM    sEEEEEMM
+    v = decode(test::ByteBufferBuilder{0b00000000, 0b00000000}.buffer, 1);
+    ASSERT_EQUAL(0b00111000000000000000000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = -15 + 127 = 0x70
+
+    // -(1 + 0b1111111111 / 2^10) * 2^16
+    //                                   MMMMMMMM    sEEEEEMM
+    v = decode(test::ByteBufferBuilder{0b11111111, 0b11111111}.buffer, 1);
+    ASSERT_EQUAL(0b11000111111111111110000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = 16 + 127 = 0x8F
+
+    // k = 2
+    // r = 7
+    // p = 16
+    // e = E - 2^(r-1) + 1 = E - 63
+
+    // 2^-63                             MMMMMMMM    MMMMMMMM    sEEEEEEE
+    v = decode(test::ByteBufferBuilder{0b00000000, 0b00000000, 0b00000000}.buffer, 2);
+    ASSERT_EQUAL(0b00100000000000000000000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = -63 + 127 = 0x40
+
+    // -(1 + 0b1111111111111111 / 2^16) * 2^64
+    //                                   MMMMMMMM    MMMMMMMM    sEEEEEEE
+    v = decode(test::ByteBufferBuilder{0b11111111, 0b11111111, 0b11111111}.buffer, 2);
+    ASSERT_EQUAL(0b11011111111111111111111110000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = 64 + 127 = 0xBF
+
+    // k = 3
+    // r = 8
+    // p = 23
+    // e = E - 2^(r-1) + 1 = E - 127
+
+    // 2^-127                            MMMMMMMM    MMMMMMMM    EMMMMMMM    sEEEEEEE
+    v = decode(test::ByteBufferBuilder{0b00000000, 0b00000000, 0b00000000, 0b00000000}.buffer, 3);
+    ASSERT_EQUAL(0b00000000000000000000000000000000ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = -127 + 127 = 0x00
+
+    // -(1 + 0b11111111111111111111111 / 2^23) * 2^128
+    //                                   MMMMMMMM    MMMMMMMM    EMMMMMMM    sEEEEEEE
+    v = decode(test::ByteBufferBuilder{0b11111111, 0b11111111, 0b11111111, 0b11111111}.buffer, 3);
+    ASSERT_EQUAL(0b11111111111111111111111111111111ul, v);
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM,  E' = e + 127 = 128 + 127 = 0xFF
+}
+
+
+static void testDecodeBinaryRationalTokenDataAs64b() {
+    std::uint64_t v;
+
+    const auto decode = dbor::Encoding::decodeBinaryRationalTokenDataAs64b;
+
+    // k = 4
+    // r = 9
+    // p = 30
+    // e = E - 2^(r-1) + 1 = E - 255
+
+    // 2^-255
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    EEMMMMMM
+        0b00000000, 0b00000000, 0b00000000, 0b00000000,
+        0b00000000
+    //    sEEEEEEE
+    }.buffer, 4);
+    ASSERT_EQUAL(0b0011000000000000000000000000000000000000000000000000000000000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = -255 + 1023 = 0x300
+
+    // -(1 + 0b111... / 2^30) * 2^256
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    EEMMMMMM
+        0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111
+    //    sEEEEEEE
+    }.buffer, 4);
+    ASSERT_EQUAL(0b1100111111111111111111111111111111111111110000000000000000000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = 256 + 1023 = 0x4FF
+
+    // k = 5
+    // r = 10
+    // p = 37
+    // e = E - 2^(r-1) + 1 = E - 511
+
+    // 2^-511
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    MMMMMMMM
+        0b00000000, 0b00000000, 0b00000000, 0b00000000,
+        0b00000000, 0b00000000
+    //    EEEMMMMM    sEEEEEEE
+    }.buffer, 5);
+    ASSERT_EQUAL(0b0010000000000000000000000000000000000000000000000000000000000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = -511 + 1023 = 0x200
+
+    // -(1 + 0b111... / 2^37) * 2^512
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    EEMMMMMM
+        0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111
+    //    EEEMMMMM    sEEEEEEE
+    }.buffer, 5);
+    ASSERT_EQUAL(0b1101111111111111111111111111111111111111111111111000000000000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = 512 + 1023 = 0x5FF
+
+    // k = 6
+    // r = 11
+    // p = 44
+    // e = E - 2^(r-1) + 1 = E - 1023
+
+    // 2^-1023
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    MMMMMMMM
+        0b00000000, 0b00000000, 0b00000000, 0b00000000,
+        0b00000000, 0b00000000, 0b00000000
+    //    MMMMMMMM    EEEEMMMM    sEEEEEEE
+    }.buffer, 6);
+    ASSERT_EQUAL(0b0000000000000000000000000000000000000000000000000000000000000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = -1023 + 1023 = 0x000
+
+    // -(1 + 0b111... / 2^44) * 2^1024
+    v = decode(test::ByteBufferBuilder{
+    //    MMMMMMMM    MMMMMMMM    MMMMMMMM    EEMMMMMM
+        0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111, 0b11111111
+    //    MMMMMMMM    EEEEMMMM    sEEEEEEE
+    }.buffer, 6);
+    ASSERT_EQUAL(0b1111111111111111111111111111111111111111111111111111111100000000ull, v);
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    // E' = e + 1023 = 1024 + 1023 = 0x7FF
+
+    // k = 7
+    // r = 11
+    // p = 52
+
+    v = decode(test::ByteBufferBuilder{
+        0b00000000, 0b00000000, 0b00000000, 0b00000000,
+        0b00000000, 0b00000000, 0b00000000, 0b00000000
+    }.buffer, 7);
+    ASSERT_EQUAL(0ull, v);
+
+    v = decode(test::ByteBufferBuilder{
+        0b11111111, 0b11111111, 0b11111111, 0b11111111,
+        0b11111111, 0b11111111, 0b11111111, 0b11111111
+    }.buffer, 7);
+    ASSERT_EQUAL(UINT64_MAX, v);
+}
+
+
+static void testConvertBinaryRational32bTo64b() {
+    const auto convert = dbor::Encoding::convertBinaryRational32bTo64b;
+
+    // 32 bit:
+    //
+    //   r = 8
+    //   p = 23
+    //   e = E - 2^(r-1) + 1 = E - 127
+
+    // E' = e + 1023 = -127 + 1023 = 0x380:
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b0011100000000000000000000000000000000000000000000000000000000000ull,
+                 convert(0b00000000000000000000000000000000ul));
+    // 2^-127              sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+
+    // E' = e + 1023 = 128 + 1023 = 0x47F:
+    //             sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b1100011111111111111111111111111111100000000000000000000000000000ull,
+                 convert(0b11111111111111111111111111111111ul));
+    //                     sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    // -(1 + 0b11111111111111111111111 / 2^23) * 2^128
+}
+
+
 void testEncoding() {
-    testEncodingSizeOfTokenFromFirstByte();
-    testEncodingSizeOfValueIn();
+    testSizeOfTokenFromFirstByte();
+    testSizeOfValueIn();
 
-    testEncodingDecodeNaturalTokenData16();
-    testEncodingDecodeNaturalTokenData32();
-    testEncodingDecodeNaturalTokenData64();
+    testDecodeNaturalTokenData16();
+    testDecodeNaturalTokenData32();
+    testDecodeNaturalTokenData64();
 
-    testEncodingEncodeNaturalTokenData16();
-    testEncodingEncodeNaturalTokenData32();
-    testEncodingEncodeNaturalTokenData64();
+    testEncodeNaturalTokenData16();
+    testEncodeNaturalTokenData32();
+    testEncodeNaturalTokenData64();
+
+    testDecodeBinaryRationalTokenDataAs32b();
+    testDecodeBinaryRationalTokenDataAs64b();
+    testConvertBinaryRational32bTo64b();
 }

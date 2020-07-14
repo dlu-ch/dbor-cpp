@@ -65,6 +65,141 @@ bool Encoding::decodeNaturalTokenData(std::uint16_t &value,
 }
 
 
+std::uint32_t Encoding::decodeBinaryRationalTokenDataAs32b(const std::uint8_t *p,
+                                                           std::size_t k) noexcept
+{
+    // Returns BinaryRationalToken(23, 0, E', M') as an unsigned little-endian integer
+    // that represents the same number as BinaryRationalToken(p, 0, E, M) = <h, p[0], ..., p[k]>
+    // for p in {4, 10, 16, 23}, i.e. k < 4.
+    // For k >= 4, the return value is unspecified (calling is safe, however).
+
+    p += k;
+
+    const bool isNeg = *p & 0x80;
+    std::uint_fast32_t v = *p & 0x7F;
+    for (std::size_t i = k; i > 0; i--)
+        v = (v << 8u) | *--p;
+
+    // s = 0 in v
+
+    if (k < 3) {
+        // k    r    p    2^(r-1)   left shift by (to align)
+        // ---  ---  ---  --------  ------------------------
+        // 0    3    4    4         19
+        // 1    5    10   16        13
+        // 2    7    16   64        7
+
+        // represented value: 1.MMM... * 2^e with e = E + 1 - 2^(r - 1)
+
+        // k    v
+        // ---  --------------------------------
+        //      MSB                          LSB
+        // 0                            sEEEMMMM
+        // 1                    sEEEEEMMMMMMMMMM
+        // 2            sEEEEEEEMMMMMMMMMMMMMMMM
+
+        std::uint32_t mantissaAligned = v << (19u - 6u * k);
+
+        // k    mantissaAligned
+        // ---  --------------------------------
+        //      MSB                          LSB
+        // 0          EEEMMMM0000000000000000000
+        // 1        EEEEEMMMMMMMMMM0000000000000
+        // 2      EEEEEEEMMMMMMMMMMMMMMMM0000000
+        // 3    0EEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM  (result)
+
+        std::uint_fast32_t exp = (mantissaAligned >> 23u) + 128u - (1u << (2u * (k + 1u)));
+        v = (mantissaAligned & ((1ul << 23u) - 1u)) | (exp << 23u);  // with s = 0
+    }
+
+    if (isNeg)
+        v |= 0x80000000ul;
+
+    return v;
+    // like IEEE-754:2008 single precision (1 sign bit, 8 exponent bits, 23 mantissa bits), but
+    // minimum and maximum value of exponent do not have special meaning (never denormalized,
+    // never NaN, or +/-Infinity).
+}
+
+
+std::uint64_t Encoding::decodeBinaryRationalTokenDataAs64b(const std::uint8_t *p,
+                                                           std::size_t k) noexcept
+{
+    // Returns BinaryRationalToken(52, o, E', M') as an unsigned little-endian integer
+    // that represents the same number as BinaryRationalToken(52, o, E, M) = <h, p[0], ..., p[k]>
+    // for p in {30, 37, 44, 52}, i.e. 4 <= k < 8.
+    // For k < 4 or k >= 8, the return value is unspecified (calling is safe, however).
+
+    p += k;
+
+    const bool isNeg = *p & 0x80;
+    std::uint_fast64_t v = *p & 0x7F;
+    for (std::size_t i = k; i > 0; i--)
+        v = (v << 8u) | *--p;
+
+    // s = 0 in v
+
+    if (k < 7) {
+        // k    r    p    2^(r-1)   left shift by (to align)
+        // ---  ---  ---  --------  ------------------------
+        // 4    9    30   256       22
+        // 5    10   37   512       15
+        // 6    11   44   1024      8
+
+        // represented value: 1.MMM... * 2^e with e = E + 1 - 2^(r - 1)
+
+        // k    v
+        // ---  ----------------------------------------------------------------
+        //      MSB                                                          LSB
+        // 4                            sEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        // 5                    sEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        // 6            sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+        std::uint_fast64_t mantissaAligned = v << (50u - 7u * k);
+
+        // k    mantissaAligned
+        // ---  ----------------------------------------------------------------
+        //      MSB                                                          LSB
+        // 4      sEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM0000000000000000000000
+        // 5     sEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM000000000000000
+        // 6    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM00000000
+        // 7    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM  (result)
+
+        std::uint_fast32_t exp = (mantissaAligned >> 52u) + 1024u - (1u << (k + 4u));
+        v = (mantissaAligned & ((1ull << 52u) - 1u)) | (static_cast<std::uint64_t>(exp) << 52u);
+    }
+
+    if (isNeg)
+        v |= 1ull << 63;
+
+    return v;
+    // like IEEE-754:2008 double precision (1 sign bit, 11 exponent bits, 52 mantissa bits), but
+    // maximum value of exponent does not have special meaning (never NaN, or +/-Infinity).
+}
+
+
+std::uint64_t Encoding::convertBinaryRational32bTo64b(std::uint32_t value) noexcept {
+    // Returns value as IEEE-754:2008 binary64 (1 sign bit, 11 exponent bits, 52 mantissa bits)
+    // that represents the same number as 'value'.
+    // 'value' like IEEE-754:2008 single precision (1 sign bit, 8 exponent bits, 23 mantissa bits),
+    // but minimum and maximum value of exponent do not have special meaning (never denormalized,
+    // never NaN, or +/-Infinity).
+    //
+    //     MSB          value           LSB
+    //     sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    //
+    // represented number: 1.MMM... * 2^e with e = E - 127
+
+    std::uint64_t v = static_cast<std::uint64_t>(value & 0x007FFFFFul) << (52u - 23u);  // mantissa
+    std::uint32_t e = ((value >> 23u) & 0xFF) + (1023u - 127u);  // exponent
+    if (value & 0x80000000ul)
+        e |= 1u << 11u;
+    v |= static_cast<std::uint64_t>(e) << 52u;
+
+    return v;
+}
+
+
 namespace dbor::impl {
 
     // Returns n modulo 2^(8 sizeof(T)), where n is the unsigned integer with the
@@ -76,9 +211,9 @@ namespace dbor::impl {
 
         T v = 0u;
         p += n - 1u;
-        while (n-- > 0u) {
+        while (n-- > 0u)
             v = (v << 8u) | *p--;
-        }
+
         return v;
     }
 
@@ -126,5 +261,3 @@ namespace dbor::impl {
 #else
     #include "Dbor/Encoding_32b.cpp.inc"
 #endif
-
-
