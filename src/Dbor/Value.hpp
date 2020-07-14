@@ -36,11 +36,14 @@ namespace dbor {
         ResultCode get(std::int32_t &value) const noexcept;
         ResultCode get(std::int64_t &value) const noexcept;
 
+        ResultCode get(float &value) const noexcept;
+        ResultCode get(double &value) const noexcept;
+
         ResultCode get(const std::uint8_t *&bytes, std::size_t &size) const noexcept;
 
         // ResultCode::OK does not mean that this value is a well-formed Utf8StringValue.
         // Use string.check() or string.getXXX() in addition.
-        ResultCode get(String &string, std::size_t maxSize) const noexcept;
+        ResultCode get(String &value, std::size_t maxSize) const noexcept;
 
     protected:
         const uint8_t *buffer_;

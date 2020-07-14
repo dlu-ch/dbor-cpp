@@ -59,11 +59,15 @@ namespace dbor {
         static std::size_t encodeNaturalTokenData(const std::uint64_t &value,
                                                   std::uint8_t *p, std::size_t capacity) noexcept;
 
-        static std::uint32_t decodeBinaryRationalTokenDataAs32b(const std::uint8_t *p,
-                                                                std::size_t k) noexcept;
-        static std::uint64_t decodeBinaryRationalTokenDataAs64b(const std::uint8_t *p,
-                                                                std::size_t k) noexcept;
-        static std::uint64_t convertBinaryRational32bTo64b(std::uint32_t value) noexcept;
+        static std::uint64_t decodeBinaryRationalTokenData(const std::uint8_t *p,
+                                                           std::size_t k) noexcept;
+        static std::uint32_t decodeBinaryRationalTokenData32(const std::uint8_t *p,
+                                                            std::size_t k) noexcept;
+        static std::uint64_t decodeBinaryRationalTokenData64(const std::uint8_t *p,
+                                                             std::size_t k) noexcept;
+        static std::uint64_t convertBinaryRational32ToBinary64(std::uint32_t value) noexcept;
+        static std::uint32_t convertBinaryRational64ToBinary32(std::uint64_t value,
+                                                               int &absDir) noexcept;
     };
 
 }

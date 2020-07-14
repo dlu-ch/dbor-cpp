@@ -4,6 +4,8 @@
 
 #include "TestValue.hpp"
 #include <initializer_list>
+#include <limits>
+#include <cmath>
 #include "Test.hpp"
 #include "Dbor/Value.hpp"
 
@@ -644,6 +646,162 @@ static void testGetIntegerInt64() {
 }
 
 
+static void testGetFloat() {
+    float v;
+
+    v = 7.0f;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, dbor::Value().get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0x00}.value.get(v));
+    ASSERT_EQUAL(0.0f, v);
+    ASSERT_TRUE(!std::signbit(v));
+
+    // NumberlikeValue
+
+    v = 7.0f;
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFC}.value.get(v));
+    ASSERT_EQUAL(0.0f, v);
+    ASSERT_TRUE(std::signbit(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFD}.value.get(v));
+    ASSERT_EQUAL(-std::numeric_limits<float>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFE}.value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::infinity(), v);
+
+    // BinaryRationalValue
+
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, ValueBuilder{0xC8}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xC8, 0b00000000}).value.get(v));
+    ASSERT_EQUAL(0.125f, v);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xC8, 0b11111001}).value.get(v));
+    ASSERT_EQUAL(-25.0f, v);
+
+    // smallest positive (denormalized) IEEE-754 binary32
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA0, 0x36}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::denorm_min(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0xB6}).value.get(v));
+    ASSERT_EQUAL(0.0f, v);
+    ASSERT_TRUE(std::signbit(v));
+
+    // largest (finite) number IEEE-754 binary32
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0xE0, 0xFF, 0xFF, 0xEF, 0x47}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::max(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+                 (ValueBuilder{0xCF, 0x01, 0x00, 0x00, 0xE0, 0xFF, 0xFF, 0xEF, 0x47}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::max(), v);
+
+    // smallest (finite) number too large for IEEE-754 binary32
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0xCF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value.get(v));
+    ASSERT_EQUAL(-std::numeric_limits<float>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x7F}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<float>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}).value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80}).value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    // NoneValue
+
+    v = 7.0f;
+    ASSERT_EQUAL(dbor::ResultCode::NO_OBJECT, ValueBuilder{0xFF}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    // IntegerValue other than IntegerValue(0)
+
+    v = 7.0f;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPATIBLE, ValueBuilder{23}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+}
+
+
+static void testGetDouble() {
+    double v;
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, dbor::Value().get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0x00}.value.get(v));
+    ASSERT_EQUAL(0.0, v);
+    ASSERT_TRUE(!std::signbit(v));
+
+    // NumberlikeValue
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFC}.value.get(v));
+    ASSERT_EQUAL(0.0, v);
+    ASSERT_TRUE(std::signbit(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFD}.value.get(v));
+    ASSERT_EQUAL(-std::numeric_limits<double>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0xFE}.value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<double>::infinity(), v);
+
+    // BinaryRationalValue
+
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, ValueBuilder{0xC8}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xC8, 0b00000000}).value.get(v));
+    ASSERT_EQUAL(0.125, v);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xC8, 0b11111001}).value.get(v));
+    ASSERT_EQUAL(-25.0, v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0xCF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}).value.get(v));
+    ASSERT_EQUAL(-std::numeric_limits<double>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x7F}).value.get(v));
+    ASSERT_EQUAL(std::numeric_limits<double>::infinity(), v);
+
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}).value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED,
+                 (ValueBuilder{0xCF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80}).value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    // NoneValue
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::NO_OBJECT, ValueBuilder{0xFF}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+
+    // IntegerValue other than IntegerValue(0)
+
+    v = 7.0;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPATIBLE, ValueBuilder{23}.value.get(v));
+    ASSERT_TRUE(std::isnan(v));
+}
+
+
 static void testGetByteString() {
     static const std::uint8_t ZERO = 0;
     const std::uint8_t *p;
@@ -939,6 +1097,9 @@ void testValue() {
     testGetIntegerInt16();
     testGetIntegerInt32();
     testGetIntegerInt64();
+
+    testGetFloat();
+    testGetDouble();
 
     testGetByteString();
     testGetUtf8String();

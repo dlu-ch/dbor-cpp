@@ -326,10 +326,10 @@ ResultCode Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const
 }
 
 
-ResultCode Value::get(String &string, std::size_t maxSize) const noexcept {
+ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
     // maxSize limits the number of instructions for string.check()
 
-    string = String();
+    value = String();
 
     if (!isComplete_)
         return ResultCode::INCOMPLETE;
@@ -356,6 +356,141 @@ ResultCode Value::get(String &string, std::size_t maxSize) const noexcept {
         r = ResultCode::APPROX_EXTREME;
     }
 
-    string = String(p, stringSize);
+    value = String(p, stringSize);
     return r;
+}
+
+
+ResultCode Value::get(float &value) const noexcept {
+    // C++:2011: "True if and only if the type adheres to IEC 559 standard.
+    // International Electrotechnical Commission standard 559 is the same as IEEE 754."
+    static_assert(std::numeric_limits<float>::is_iec559, "");
+    static_assert(std::numeric_limits<float>::has_denorm == std::denorm_present, "");
+    static_assert(sizeof(float) == 4, "");
+
+    value = std::numeric_limits<float>::quiet_NaN();
+
+    if (!isComplete_)
+        return ResultCode::INCOMPLETE;
+
+    if ((buffer_[0] & 0xF8) == 0xC8) {
+        // BinaryRationalValue
+        const std::uint_fast8_t k = buffer_[0] & 7;
+        if (k >= size_)
+            return ResultCode::INCOMPLETE;
+
+        std::uint64_t v64 = Encoding::decodeBinaryRationalTokenData(&buffer_[1], k);
+
+        const std::uint64_t v64WithoutSign = v64 & ((1ull << 63) - 1u);
+        if (k == 7 && !v64WithoutSign)
+            return ResultCode::ILLFORMED;
+
+        union {
+            float f32;
+            std::uint32_t v32;
+        };
+        static_assert(sizeof(f32) == sizeof(v32), "");
+
+        int absDir;
+        v32 = Encoding::convertBinaryRational64ToBinary32(v64, absDir);
+        value = f32;
+
+        if (absDir > 0)
+            return ResultCode::APPROX_EXTREME;
+        if (absDir < 0)
+            return ResultCode::APPROX_IMPRECISE;
+        return ResultCode::OK;
+    }
+
+    switch (buffer_[0]) {
+        case 0x00:
+            value = 0.0f;
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
+            return ResultCode::NO_OBJECT;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
+            // C+:2011 is not clear about -0.0 ("the result is the negation of its operand"),
+            // so avoid it
+            static constexpr float MINUS_ZERO = -1.0f / std::numeric_limits<float>::infinity();
+            value = MINUS_ZERO;
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
+            value = -std::numeric_limits<float>::infinity();
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
+            value = std::numeric_limits<float>::infinity();
+            return ResultCode::OK;
+        default:
+            break;
+    }
+
+    return ResultCode::INCOMPATIBLE;
+}
+
+
+ResultCode Value::get(double &value) const noexcept {
+    // C++:2011: "True if and only if the type adheres to IEC 559 standard.
+    // International Electrotechnical Commission standard 559 is the same as IEEE 754."
+    static_assert(std::numeric_limits<double>::is_iec559, "");
+    static_assert(std::numeric_limits<double>::has_denorm == std::denorm_present, "");
+    static_assert(sizeof(double) == 8, "");
+
+    value = std::numeric_limits<double>::quiet_NaN();
+
+    if (!isComplete_)
+        return ResultCode::INCOMPLETE;
+
+    if ((buffer_[0] & 0xF8) == 0xC8) {
+        // BinaryRationalValue
+        const std::uint_fast8_t k = buffer_[0] & 7;
+        if (k >= size_)
+            return ResultCode::INCOMPLETE;
+
+        union {
+            double f64;
+            std::uint64_t v64;
+        };
+        static_assert(sizeof(f64) == sizeof(v64), "");
+
+        v64 = Encoding::decodeBinaryRationalTokenData(&buffer_[1], k);
+        if (k == 7) {
+            const std::uint64_t v64WithoutSign = v64 & ((1ull << 63) - 1u);
+            if (!v64WithoutSign)
+                return ResultCode::ILLFORMED;
+            if (v64WithoutSign >= 0x7FFull << 52u) {
+                // exp is maximum (IEEE 754 uses this to represent +/-Infinity and NaN)
+                value = v64 & (1ull << 63) ?
+                    -std::numeric_limits<double>::infinity() :
+                    std::numeric_limits<double>::infinity();
+                return ResultCode::APPROX_EXTREME;
+            }
+        }
+
+        value = f64;
+        return ResultCode::OK;
+    }
+
+    switch (buffer_[0]) {
+        case 0x00:
+            value = 0.0;
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
+            return ResultCode::NO_OBJECT;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
+            // C+:2011 is not clear about -0.0 ("the result is the negation of its operand"),
+            // so avoid it
+            static constexpr double MINUS_ZERO = -1.0 / std::numeric_limits<double>::infinity();
+            value = MINUS_ZERO;
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
+            value = -std::numeric_limits<double>::infinity();
+            return ResultCode::OK;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
+            value = std::numeric_limits<double>::infinity();
+            return ResultCode::OK;
+        default:
+            break;
+    }
+
+    return ResultCode::INCOMPATIBLE;
 }

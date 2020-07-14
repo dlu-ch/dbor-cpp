@@ -65,8 +65,8 @@ bool Encoding::decodeNaturalTokenData(std::uint16_t &value,
 }
 
 
-std::uint32_t Encoding::decodeBinaryRationalTokenDataAs32b(const std::uint8_t *p,
-                                                           std::size_t k) noexcept
+std::uint32_t Encoding::decodeBinaryRationalTokenData32(const std::uint8_t *p,
+                                                        std::size_t k) noexcept
 {
     // Returns BinaryRationalToken(23, 0, E', M') as an unsigned little-endian integer
     // that represents the same number as BinaryRationalToken(p, 0, E, M) = <h, p[0], ..., p[k]>
@@ -122,8 +122,8 @@ std::uint32_t Encoding::decodeBinaryRationalTokenDataAs32b(const std::uint8_t *p
 }
 
 
-std::uint64_t Encoding::decodeBinaryRationalTokenDataAs64b(const std::uint8_t *p,
-                                                           std::size_t k) noexcept
+std::uint64_t Encoding::decodeBinaryRationalTokenData64(const std::uint8_t *p,
+                                                        std::size_t k) noexcept
 {
     // Returns BinaryRationalToken(52, o, E', M') as an unsigned little-endian integer
     // that represents the same number as BinaryRationalToken(52, o, E, M) = <h, p[0], ..., p[k]>
@@ -149,21 +149,21 @@ std::uint64_t Encoding::decodeBinaryRationalTokenDataAs64b(const std::uint8_t *p
         // represented value: 1.MMM... * 2^e with e = E + 1 - 2^(r - 1)
 
         // k    v
-        // ---  ----------------------------------------------------------------
-        //      MSB                                                          LSB
-        // 4                            sEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-        // 5                    sEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-        // 6            sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        // ---  -----------------------------------------------------------------
+        //      MSB                                                           LSB
+        // 4                            sEEEEEEE EEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        // 5                    sEEEEEEEEEEMMMMM MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+        // 6            sEEEEEEEEEEEMMMMMMMMMMMM MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
 
         std::uint_fast64_t mantissaAligned = v << (50u - 7u * k);
 
         // k    mantissaAligned
-        // ---  ----------------------------------------------------------------
-        //      MSB                                                          LSB
-        // 4      sEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM0000000000000000000000
-        // 5     sEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM000000000000000
-        // 6    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM00000000
-        // 7    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM  (result)
+        // ---  -----------------------------------------------------------------
+        //      MSB                                                           LSB
+        // 4      sEEEEEEEEEMMMMMMMMMMMMMMMMMMMM MMMMMMMMMM0000000000000000000000
+        // 5     sEEEEEEEEEEMMMMMMMMMMMMMMMMMMMM MMMMMMMMMMMMMMMMM000000000000000
+        // 6    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMM MMMMMMMMMMMMMMMMMMMMMMMM00000000
+        // 7    sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMM MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM  (result)
 
         std::uint_fast32_t exp = (mantissaAligned >> 52u) + 1024u - (1u << (k + 4u));
         v = (mantissaAligned & ((1ull << 52u) - 1u)) | (static_cast<std::uint64_t>(exp) << 52u);
@@ -178,7 +178,7 @@ std::uint64_t Encoding::decodeBinaryRationalTokenDataAs64b(const std::uint8_t *p
 }
 
 
-std::uint64_t Encoding::convertBinaryRational32bTo64b(std::uint32_t value) noexcept {
+std::uint64_t Encoding::convertBinaryRational32ToBinary64(std::uint32_t value) noexcept {
     // Returns value as IEEE-754:2008 binary64 (1 sign bit, 11 exponent bits, 52 mantissa bits)
     // that represents the same number as 'value'.
     // 'value' like IEEE-754:2008 single precision (1 sign bit, 8 exponent bits, 23 mantissa bits),
@@ -197,6 +197,67 @@ std::uint64_t Encoding::convertBinaryRational32bTo64b(std::uint32_t value) noexc
     v |= static_cast<std::uint64_t>(e) << 52u;
 
     return v;
+}
+
+
+std::uint32_t Encoding::convertBinaryRational64ToBinary32(std::uint64_t value,
+                                                          int &absDir) noexcept
+{
+    // Returns value as IEEE-754:2008 binary32 (1 sign bit, 8 exponent bits, 23 mantissa bits)
+    // that represents the same number as 'value'.
+    // 'value' like IEEE-754:2008 double precision (1 sign bit, 11 exponent bits, 52 mantissa bits),
+    // but maximum value of exponent does not have special meaning (never NaN, or +/-Infinity).
+    //
+    //     MSB                         value                             LSB
+    //     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMM MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+
+    const std::uint_fast32_t expAndSign = value >> 52u;
+    const std::uint_fast32_t exp = expAndSign & 0x7FF;
+    const std::uint_fast32_t sign = expAndSign & 0x800u ? 0x80000000ul : 0u;
+
+    // normalized IEEE-754 binary32: (1 + M / 2^23) * 2^e  with -126 <= e <= 127
+    // denormalized IEEE-754 binary32: M / 2^23 * 2^-126
+
+    if (exp > 1023u + 127u) {
+        absDir = 1;  // magnitude too large to represent exactly
+        return 0x7F800000ul | sign;  // +/- Infinity
+    }
+
+    std::uint_fast32_t mant = (value >> 29u) & 0x7FFFFFu;
+    std::uint_fast32_t v = sign;
+    bool imprecise = value & ((1ul << 29u) - 1u);
+
+    if (exp >= 1023u - 126u) {
+        // normalized number
+        v |= mant | ((exp - (1023u - 127u)) << 23u);
+    } else {
+        // denormalized number
+
+        // for smallest positive IEEE-754 binary32:
+        // exp - 1023 = -126 - 23  =>  exp = 874
+
+        const std::uint_fast16_t h = (1023u - 126u) - exp;  // 0 .. 897
+        if (h < 24u) {
+            mant |= 1ul << 23u;
+            imprecise = imprecise || (mant & ((1ul << h) - 1u));
+            v |= mant >> h;
+        } else
+            imprecise = true;
+    }
+
+    absDir = imprecise ? -1 : 0;
+    return v;
+}
+
+
+std::uint64_t Encoding::decodeBinaryRationalTokenData(const std::uint8_t *p,
+                                                      std::size_t k) noexcept
+{
+    if (k >= 4)
+        return Encoding::decodeBinaryRationalTokenData64(p, k);
+
+    std::uint32_t v = Encoding::decodeBinaryRationalTokenData32(p, k);
+    return Encoding::convertBinaryRational32ToBinary64(v);
 }
 
 

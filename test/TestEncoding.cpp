@@ -472,10 +472,10 @@ static void testEncodeNaturalTokenData64() {
 }
 
 
-static void testDecodeBinaryRationalTokenDataAs32b() {
+static void testDecodeBinaryRationalTokenData32() {
     std::uint32_t v;
 
-    const auto decode = dbor::Encoding::decodeBinaryRationalTokenDataAs32b;
+    const auto decode = dbor::Encoding::decodeBinaryRationalTokenData32;
 
     // k = 0
     // r = 3
@@ -542,10 +542,10 @@ static void testDecodeBinaryRationalTokenDataAs32b() {
 }
 
 
-static void testDecodeBinaryRationalTokenDataAs64b() {
+static void testDecodeBinaryRationalTokenData64() {
     std::uint64_t v;
 
-    const auto decode = dbor::Encoding::decodeBinaryRationalTokenDataAs64b;
+    const auto decode = dbor::Encoding::decodeBinaryRationalTokenData64;
 
     // k = 4
     // r = 9
@@ -646,8 +646,8 @@ static void testDecodeBinaryRationalTokenDataAs64b() {
 }
 
 
-static void testConvertBinaryRational32bTo64b() {
-    const auto convert = dbor::Encoding::convertBinaryRational32bTo64b;
+static void testConvertBinaryRational32ToBinary64() {
+    const auto convert = dbor::Encoding::convertBinaryRational32ToBinary64;
 
     // 32 bit:
     //
@@ -670,6 +670,110 @@ static void testConvertBinaryRational32bTo64b() {
 }
 
 
+static void testConvertBinaryRational64ToBinary32() {
+    const auto convert = dbor::Encoding::convertBinaryRational64ToBinary32;
+
+    int absDir;
+    absDir = 7;
+    ASSERT_EQUAL(0xFF800000ul,  convert(UINT64_MAX, absDir));  // -Infinity
+    ASSERT_EQUAL(1, absDir);
+
+    absDir = 7;
+    ASSERT_EQUAL(0x7F800000ul, convert((1ull << 63u) - 1u, absDir));  // Infinity
+    ASSERT_EQUAL(1, absDir);
+
+    absDir = 7;
+    ASSERT_EQUAL(0, convert(1u, absDir));  // 0
+    ASSERT_EQUAL(-1, absDir);
+
+    // largest number exactly representable as IEEE-754 binary32
+    // (1 + 0b111... / 2^23) * 2^127
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b01111111011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0100011111101111111111111111111111100000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(0, absDir);
+
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b01111111011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0100011111101111111111111111111111110000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(-1, absDir);  // 1 bit of mantissa lost (rounded towards 0)
+
+    // smallest number exactly representable as IEEE-754 binary32
+    absDir = 7;
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b11111111011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b1100011111101111111111111111111111100000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(0, absDir);
+
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b11111111011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b1100011111101111111111111111111111110000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(-1, absDir);  // 1 bit of mantissa lost (rounded towards 0)
+
+    // smallest number too large to be exactly represented as IEEE-754 binary32 after rounding
+    ASSERT_EQUAL(0x7F800000ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0100100000000000000000000000000000000000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(1, absDir);
+
+    // largest denormalized number: 0.111... * 2^-126
+    absDir = 7;
+
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b00000000011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0011100000001111111111111111111111000000000000000000000000000000ull,
+                 //                    ^ .................. ^  22 b + hidden bit
+                         absDir));
+    ASSERT_EQUAL(0, absDir);
+
+    absDir = 7;
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b00000000011111111111111111111111ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0011100000001111111111111111111111100000000000000000000000000000ull,
+                 //                                          ^
+                         absDir));
+    ASSERT_EQUAL(-1, absDir);
+
+    // smallest positive (denormalized) number: 2^(-126 - 23)
+    absDir = 7;
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b00000000000000000000000000000001ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0011011010100000000000000000000000000000000000000000000000000000ull,
+                         absDir));
+    ASSERT_EQUAL(0, absDir);
+
+    absDir = 7;
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b00000000000000000000000000000001ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b0011011010101000000000000000000000000000000000000000000000000000ull,
+                 //                    ^
+                         absDir));
+    ASSERT_EQUAL(-1, absDir);
+
+    absDir = 7;
+    //             sEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMM
+    ASSERT_EQUAL(0b10000000000000000000000000000001ul,
+    //                     sEEEEEEEEEEEMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                 convert(0b1011011010100000000000000000000000000000000000000000000000000001ull,
+                 //                                                                       ^
+                         absDir));
+    ASSERT_EQUAL(-1, absDir);
+}
+
+
 void testEncoding() {
     testSizeOfTokenFromFirstByte();
     testSizeOfValueIn();
@@ -682,7 +786,8 @@ void testEncoding() {
     testEncodeNaturalTokenData32();
     testEncodeNaturalTokenData64();
 
-    testDecodeBinaryRationalTokenDataAs32b();
-    testDecodeBinaryRationalTokenDataAs64b();
-    testConvertBinaryRational32bTo64b();
+    testDecodeBinaryRationalTokenData32();
+    testDecodeBinaryRationalTokenData64();
+    testConvertBinaryRational32ToBinary64();
+    testConvertBinaryRational64ToBinary32();
 }

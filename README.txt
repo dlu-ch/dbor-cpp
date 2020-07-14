@@ -37,7 +37,7 @@ Build/usage requirements:
     - Each char with a non-negative integral value < 0x80 represents an ASCII character with that
       code which is a member of the basic execution character set.
 
-    - float and std are represented as IEEE-754:2008 binary32 and binary64, respectively.
+    - float and double are represented as IEEE-754:2008 binary32 and binary64, respectively.
 
 
 Implementation properties:
