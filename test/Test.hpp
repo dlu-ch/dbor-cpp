@@ -27,27 +27,23 @@ namespace test {
     };
 
 
-    // Usage: ByteBufferBuilder{0x00, 0x12}.buffer()
-    class ByteBufferBuilder {
-    public:
-        ByteBufferBuilder() : buffer_(new std::uint8_t[1]), size_(0) { *buffer_ = 0; }
+    // Usage: ByteBufferBuilder{0x00, 0x12}.buffer
+    struct ByteBufferBuilder {
+        ByteBufferBuilder() : buffer(new std::uint8_t[1]), size(0) { *buffer = 0; }
         ByteBufferBuilder(std::initializer_list<std::uint8_t> bytes);
-        virtual ~ByteBufferBuilder() noexcept { delete[] buffer_; };
+        virtual ~ByteBufferBuilder() noexcept { delete[] buffer; };
 
-        const std::uint8_t *buffer() const noexcept { return buffer_; }  // != nullptr
-        const std::size_t size() const noexcept { return size_; }
-
-    protected:
-        uint8_t *const buffer_;
-        const std::size_t size_;
+        uint8_t *const buffer;  // != nullptr
+        const std::size_t size;
     };
 
 
     inline ByteBufferBuilder::ByteBufferBuilder(std::initializer_list<std::uint8_t> bytes)
-        : buffer_(new std::uint8_t[bytes.size()]), size_(bytes.size())
+        : buffer(new std::uint8_t[bytes.size()]), size(bytes.size())
     {
-        std::uint8_t *p = buffer_;
-        for (std::uint8_t b: bytes) *p++ = b;
+        std::uint8_t *p = buffer;
+        for (std::uint8_t b: bytes)
+            *p++ = b;
     }
 
 }

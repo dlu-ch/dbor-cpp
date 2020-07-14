@@ -11,7 +11,7 @@
 struct ValueBuilder: public test::ByteBufferBuilder {
     ValueBuilder(std::initializer_list<std::uint8_t> bytes)
         : test::ByteBufferBuilder(bytes)
-        , value(buffer_, bytes.size())
+        , value(buffer, size)
     {
     }
 

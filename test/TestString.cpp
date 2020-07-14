@@ -11,7 +11,7 @@
 struct StringBuilder: public test::ByteBufferBuilder {
     StringBuilder(std::initializer_list<std::uint8_t> bytes)
         : test::ByteBufferBuilder(bytes)
-        , string(buffer(), size())
+        , string(buffer, size)
     {}
 
     const dbor::String string;
@@ -49,7 +49,7 @@ static void testFirstCodepointIn() {
         Builder(std::initializer_list<std::uint8_t> bytes) : test::ByteBufferBuilder(bytes) {}
 
         dbor::String::CodePoint firstCodepointIn(std::size_t &n) const noexcept {
-            return dbor::String::firstCodepointIn(buffer(), size(), n);
+            return dbor::String::firstCodepointIn(buffer, size, n);
         }
     };
 
@@ -178,7 +178,7 @@ static void testOffsetOfLastCodepointIn() {
         Builder(std::initializer_list<std::uint8_t> bytes) : test::ByteBufferBuilder(bytes) {}
 
         dbor::String::CodePoint offsetOfLastCodepointIn() const noexcept {
-            return dbor::String::offsetOfLastCodepointIn(buffer(), size());
+            return dbor::String::offsetOfLastCodepointIn(buffer, size);
         }
     };
 
