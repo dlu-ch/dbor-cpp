@@ -112,65 +112,6 @@ ResultCode Value::get(std::int64_t &value) const noexcept {
 }
 
 
-ResultCode Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const noexcept {
-    bytes = nullptr;
-    stringSize = 0;
-
-    if (!isComplete_)
-        return ResultCode::INCOMPLETE;
-
-    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
-        return ResultCode::NO_OBJECT;
-
-    if (buffer_[0] < 0x40 || buffer_[0] >= 0x60)
-        return ResultCode::INCOMPATIBLE;
-
-    // ByteStringValue
-    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
-    if (size_ < sizeOfFirstToken)
-        return ResultCode::INCOMPLETE;
-
-    stringSize = size_ - sizeOfFirstToken;
-    bytes = &buffer_[sizeOfFirstToken];
-    return ResultCode::OK;
-}
-
-
-ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
-    // maxSize limits the number of instructions for string.check()
-
-    value = String();
-
-    if (!isComplete_)
-        return ResultCode::INCOMPLETE;
-
-    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
-        return ResultCode::NO_OBJECT;
-
-    if (buffer_[0] < 0x60 || buffer_[0] >= 0x80)
-        return ResultCode::INCOMPATIBLE;
-
-    // Utf8StringValue
-    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
-    if (size_ < sizeOfFirstToken)
-        return ResultCode::INCOMPLETE;
-
-    std::size_t stringSize = size_ - sizeOfFirstToken;
-    const std::uint8_t *p = &buffer_[sizeOfFirstToken];
-    ResultCode r = ResultCode::OK;
-
-    if (stringSize > maxSize) {
-        // find beginning of truncated code point: is well-formed after truncation if it was before
-        stringSize = String::offsetOfLastCodepointIn(p, maxSize + 1);  // maxSize + 1 <= stringSize
-        stringSize = stringSize <= maxSize ? stringSize : maxSize;
-        r = ResultCode::APPROX_EXTREME;
-    }
-
-    value = String(p, stringSize);
-    return r;
-}
-
-
 ResultCode Value::get(float &value) const noexcept {
     // C++:2011: "True if and only if the type adheres to IEC 559 standard.
     // International Electrotechnical Commission standard 559 is the same as IEEE 754."
@@ -303,4 +244,153 @@ ResultCode Value::get(double &value) const noexcept {
     }
 
     return ResultCode::INCOMPATIBLE;
+}
+
+
+ResultCode Value::get(std::int32_t &mant, std::int32_t &exp10) const noexcept {
+    mant = 0;
+    exp10 = 0;
+
+    // if ResultCode::APPROX_IMPRECISE: mant > 0 if too large, mant < 0 if too small
+
+    if (!isComplete_)
+        return ResultCode::INCOMPLETE;
+
+    if (buffer_[0] < 0x40)
+         // IntegerValue(mant), treat like DecimalRationalValue(mant, 0)
+        return get(mant);
+
+    if (buffer_[0] < 0xD0)
+        return ResultCode::INCOMPATIBLE;
+
+    if (buffer_[0] >= 0xF0) {
+        switch (buffer_[0]) {
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
+            return ResultCode::APPROX_IMPRECISE;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
+            mant = std::numeric_limits<std::int32_t>::min();
+            exp10 = std::numeric_limits<std::int32_t>::max();
+            return ResultCode::APPROX_EXTREME;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
+            mant = std::numeric_limits<std::int32_t>::max();
+            exp10 = std::numeric_limits<std::int32_t>::max();
+            return ResultCode::APPROX_EXTREME;
+        case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
+            return ResultCode::NO_OBJECT;
+        default:
+            return ResultCode::INCOMPATIBLE;
+        }
+    }
+
+    // PowerOfTenToken(e)
+
+    std::uint32_t eAbs;
+    std::size_t firstTokenSize = 0;
+
+    if ((buffer_[0] & 0xF0) == 0xE0) {
+        // |e| <= 8
+        eAbs = (buffer_[0] & 7u) + 1;
+        firstTokenSize = 1;
+    } else if ((buffer_[0] & 0xF0) == 0xD0) {
+        // |e| > 8
+        firstTokenSize = 2u + (buffer_[0] & 7u);
+        if (size_ < firstTokenSize)
+            return ResultCode::INCOMPLETE;
+        if (!Encoding::decodeNaturalTokenData(eAbs, &buffer_[1], firstTokenSize - 1u, 8u))
+            eAbs = std::numeric_limits<std::uint32_t>::max();
+    }
+
+    if (size_ <= firstTokenSize || buffer_[firstTokenSize] == 0
+        || buffer_[firstTokenSize] >= 0x40)
+        return ResultCode::ILLFORMED;  // not followed by an IntegerToken(v) with v != 0
+
+    std::int32_t m;
+    ResultCode r = impl::getSignedInteger(m, &buffer_[firstTokenSize], size_ - firstTokenSize);
+    if (buffer_[0] & 8u) {
+        // exp10 < 0
+        if (eAbs > -static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::min())) {
+            mant = 0;  // TODO is there an efficient way to approximate?
+            exp10 = std::numeric_limits<std::int32_t>::min();
+            r = ResultCode::APPROX_IMPRECISE;
+        } else {
+            mant = m;
+            exp10 = -static_cast<std::int32_t>(eAbs);
+            if (r == ResultCode::APPROX_EXTREME)
+                r = ResultCode::APPROX_IMPRECISE;  // TODO is there an efficient way to approximate?
+        }
+    } else {
+        // exp10 > 0
+        if (eAbs > static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::max())) {
+            mant =
+                m > 0 ?
+                std::numeric_limits<std::int32_t>::max() :
+                std::numeric_limits<std::int32_t>::min();
+            exp10 = std::numeric_limits<std::int32_t>::max();
+            r = ResultCode::APPROX_EXTREME;
+        } else {
+            mant = m;
+            exp10 = static_cast<std::int32_t>(eAbs);
+        }
+    }
+
+    return r;
+}
+
+
+ResultCode Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const noexcept {
+    bytes = nullptr;
+    stringSize = 0;
+
+    if (!isComplete_)
+        return ResultCode::INCOMPLETE;
+
+    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
+        return ResultCode::NO_OBJECT;
+
+    if (buffer_[0] < 0x40 || buffer_[0] >= 0x60)
+        return ResultCode::INCOMPATIBLE;
+
+    // ByteStringValue
+    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
+    if (size_ < sizeOfFirstToken)
+        return ResultCode::INCOMPLETE;
+
+    stringSize = size_ - sizeOfFirstToken;
+    bytes = &buffer_[sizeOfFirstToken];
+    return ResultCode::OK;
+}
+
+
+ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
+    // maxSize limits the number of instructions for string.check()
+
+    value = String();
+
+    if (!isComplete_)
+        return ResultCode::INCOMPLETE;
+
+    if (buffer_[0] == static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE))
+        return ResultCode::NO_OBJECT;
+
+    if (buffer_[0] < 0x60 || buffer_[0] >= 0x80)
+        return ResultCode::INCOMPATIBLE;
+
+    // Utf8StringValue
+    std::size_t sizeOfFirstToken = Encoding::sizeOfTokenFromFirstByte(buffer_[0]);
+    if (size_ < sizeOfFirstToken)
+        return ResultCode::INCOMPLETE;
+
+    std::size_t stringSize = size_ - sizeOfFirstToken;
+    const std::uint8_t *p = &buffer_[sizeOfFirstToken];
+    ResultCode r = ResultCode::OK;
+
+    if (stringSize > maxSize) {
+        // find beginning of truncated code point: is well-formed after truncation if it was before
+        stringSize = String::offsetOfLastCodepointIn(p, maxSize + 1);  // maxSize + 1 <= stringSize
+        stringSize = stringSize <= maxSize ? stringSize : maxSize;
+        r = ResultCode::APPROX_EXTREME;
+    }
+
+    value = String(p, stringSize);
+    return r;
 }

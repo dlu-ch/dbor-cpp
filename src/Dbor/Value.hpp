@@ -38,6 +38,7 @@ namespace dbor {
 
         ResultCode get(float &value) const noexcept;
         ResultCode get(double &value) const noexcept;
+        ResultCode get(std::int32_t &mant, std::int32_t &exp10) const noexcept;
 
         ResultCode get(const std::uint8_t *&bytes, std::size_t &size) const noexcept;
 

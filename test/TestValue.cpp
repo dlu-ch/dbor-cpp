@@ -802,6 +802,165 @@ static void testGetDouble() {
 }
 
 
+static void testGetInt32Int32() {
+    static_assert(INT32_MIN == -2147483648l && INT32_MAX == 2147483647l,
+                  "expect 2's complement representation");
+
+    std::int32_t m, e;
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, dbor::Value().get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    // IntegerValue
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::OK, ValueBuilder{0x00}.value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{0x3B, 0xE7, 0xFE, 0xFE, 0x7E}).value.get(m, e));
+    ASSERT_EQUAL(INT32_MIN, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0x3B, 0xE8, 0xFE, 0xFE, 0x7E}).value.get(m, e));
+    ASSERT_EQUAL(INT32_MIN, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{0x1B, 0xE7, 0xFE, 0xFE, 0x7E}).value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE, 0x7E}).value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(0, e);
+
+    // DecimalRationalValue
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xE7, 0x22}).value.get(m, e));
+    ASSERT_EQUAL(-3, m);
+    ASSERT_EQUAL(8, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK, (ValueBuilder{0xEF, 0x05}).value.get(m, e));
+    ASSERT_EQUAL(5, m);
+    ASSERT_EQUAL(-8, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, (ValueBuilder{0xE7}).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED, (ValueBuilder{0xE0, 0xE7}).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::ILLFORMED, (ValueBuilder{0xE7, 0x00}).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{
+                     0xE7,
+                     0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+                 }).value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(8, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{
+                    0xD0, 0x00,
+                    0x3B, 0xE7, 0xFE, 0xFE, 0x7E
+                 }).value.get(m, e));
+    ASSERT_EQUAL(INT32_MIN, m);
+    ASSERT_EQUAL(9, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::OK,
+                 (ValueBuilder{
+                    0xDB, 0xF7, 0xFE, 0xFE, 0x7E,
+                    0x1B, 0xE7, 0xFE, 0xFE, 0x7E
+                 }).value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(INT32_MIN, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,  // TODO is there a better way?
+                 (ValueBuilder{
+                    0xDB, 0xF7, 0xFE, 0xFE, 0x7E,
+                    0x1B, 0xE8, 0xFE, 0xFE, 0x7E
+                 }).value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(INT32_MIN, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+                 (ValueBuilder{
+                    0xD7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0x20
+                 }).value.get(m, e));
+    ASSERT_EQUAL(INT32_MIN, m);
+    ASSERT_EQUAL(INT32_MAX, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+                 (ValueBuilder{
+                    0xDB, 0xF8, 0xFE, 0xFE, 0x7E,
+                    0x1B, 0xE7, 0xFE, 0xFE, 0x7E
+                 }).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(INT32_MIN, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+                 (ValueBuilder{
+                    0xDF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0x05
+                 }).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(INT32_MIN, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, (ValueBuilder{0xDF, 0xFF}).value.get(m, e));
+
+    // NumberlikeValue
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE, ValueBuilder{0xFC}.value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME, ValueBuilder{0xFD}.value.get(m, e));
+    ASSERT_EQUAL(INT32_MIN, m);
+    ASSERT_EQUAL(INT32_MAX, e);
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME, ValueBuilder{0xFE}.value.get(m, e));
+    ASSERT_EQUAL(INT32_MAX, m);
+    ASSERT_EQUAL(INT32_MAX, e);
+
+    // BinaryRationalValue
+
+    ASSERT_EQUAL(dbor::ResultCode::INCOMPATIBLE, (ValueBuilder{0xC8, 0b00000000}).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    // NoneValue
+
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::NO_OBJECT, ValueBuilder{0xFF}.value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+}
+
+
 static void testGetByteString() {
     static const std::uint8_t ZERO = 0;
     const std::uint8_t *p;
@@ -1100,6 +1259,7 @@ void testValue() {
 
     testGetFloat();
     testGetDouble();
+    testGetInt32Int32();
 
     testGetByteString();
     testGetUtf8String();

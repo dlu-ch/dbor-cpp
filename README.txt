@@ -94,7 +94,7 @@ DBOR values and associated sets of native data types:
 
    BinaryRationalValue     float, double
 
-   DecimalRationalValue    (std::int32_t, std::int32_t), (std::int64_t, std::int32_t)
+   DecimalRationalValue    (std::int32_t, std::int32_t)
 
    ByteStringValue         std::uint8_t *
 
