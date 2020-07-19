@@ -2,9 +2,28 @@ dbor-c++
 --------
 
 dbor-c++ is a library implementing a DBOR encoder and decoder for C++:2011, suitable for
-real-time embedded systems and use in interrupt handlers. All provided operations are reentrant.
+real-time embedded systems and use in interrupt handlers.
 
 DBOR: <https::github.com/dlu-ch/dbor-spec>.
+
+
+Application example:
+
+    std::uint8_t a;
+    dbor::String b;
+    std::size_t bLength;
+    float c;
+
+    dbor::ValueBlock values(...);
+    auto iter = values.begin();  // iterates over values (*iter is a dbor::Value)
+    dbor::ResultCodeSet results =
+               iter->get(a)
+        << (++iter)->get(b) << b.check(bLength, 0x0020, 0xFFFF)
+        << (++iter)->get(c);
+
+    if (isOk(results)) {
+        ...  // use a, b, c
+    }
 
 
 Build/usage requirements:
@@ -65,7 +84,7 @@ Configuration options:
  - With or without use of 64 bit arithmetics by default
 
 
-DBOR values and associated set of native data types:
+DBOR values and associated sets of native data types:
 
    Value type              Associated set of native data types
    ----------------------  -----------------------------------

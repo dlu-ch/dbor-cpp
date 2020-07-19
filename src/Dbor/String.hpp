@@ -44,7 +44,7 @@ namespace dbor {
         ResultCode check() const noexcept;
 
         // p[0] ... p[size - 1] is an ASCII string of characters with ASCII code in the
-        // range 0x20 ... 0x7F if printableOnly is true and in the range 0x00 ... 0x7F otherwise.
+        // range 0x20 ... 0x7E if printableOnly is true and in the range 0x00 ... 0x7F otherwise.
         // p is not necessarily NUL terminated.
         // ResultCode::OK, ResultCode::ILLFORMED, ResultCode::RANGE.
         ResultCode getAscii(const char *&buffer, std::size_t &size,

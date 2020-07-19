@@ -18,8 +18,8 @@ namespace dbor {
         ValueBlock(const ValueBlock &) noexcept = default;
         ValueBlock &operator=(const ValueBlock &) noexcept = delete;
 
-        const void *buffer() const noexcept;  // may be nullptr even if capacity() > 0
-        std::size_t capacity() const noexcept; // may be 0 even if buffer() = nullptr
+        const void *buffer() const noexcept;
+        std::size_t capacity() const noexcept;
 
         Iterator begin() const noexcept;
         Iterator end() const noexcept;
@@ -43,8 +43,8 @@ namespace dbor {
 
         Iterator &operator++() noexcept;
         // no post-decrement operator on purpuse (would be slow)
-        const Value &operator*() const noexcept;  // moves with the iterator
-        const Value *operator->() const noexcept;  // moves with the iterator
+        const Value &operator*() const noexcept;  // returned value "moves" with the iterator
+        const Value *operator->() const noexcept;  // returned value "moves" with the iterator
 
         bool isAtEnd() const noexcept;
         std::size_t remainingSize() const noexcept;
