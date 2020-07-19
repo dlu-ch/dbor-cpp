@@ -70,21 +70,14 @@ bool Value::isContainer() const noexcept {
 
 namespace dbor::impl {
 
-    template<typename T>
-    ResultCode convertNumberlikeToInteger(T &value, std::uint8_t firstByte) {
-        static_assert(std::numeric_limits<T>::is_integer, "");
-
-        value = 0;
-
+    static ResultCode convertNumberlikeToInteger(std::uint8_t firstByte) noexcept {
         if (firstByte >= 0xFC) {
             switch (firstByte) {
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_ZERO):
                 return ResultCode::APPROX_IMPRECISE;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF):
-                value = std::numeric_limits<T>::min();
                 return ResultCode::APPROX_EXTREME;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::INF):
-                value = std::numeric_limits<T>::max();
                 return ResultCode::APPROX_EXTREME;
             case static_cast<std::uint8_t>(Encoding::SingleByteValue::NONE):
             default:
@@ -95,9 +88,10 @@ namespace dbor::impl {
         return ResultCode::INCOMPATIBLE;
     }
 
+
     template<typename T>  // T: e.g. std::uint32_t
-    static ResultCode getUnsignedInteger(T &value,
-                                         const std::uint8_t *buffer, std::size_t size)
+    static ResultCode getUnsignedInteger(T &value, const T maximumValue,
+                                         const std::uint8_t *buffer, std::size_t size) noexcept
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -119,8 +113,10 @@ namespace dbor::impl {
             if (size <= n)
                 return ResultCode::INCOMPLETE;
 
-            if (!Encoding::decodeNaturalTokenData(value, &buffer[1], n, 23)) {
-                value = std::numeric_limits<T>::max();
+            if (!Encoding::decodeNaturalTokenData(value, &buffer[1], n, 23)
+                || value > maximumValue)
+            {
+                value = maximumValue;
                 return ResultCode::APPROX_EXTREME;
             }
 
@@ -131,12 +127,21 @@ namespace dbor::impl {
             // negative IntegerValue
             return ResultCode::APPROX_EXTREME;
 
-        return convertNumberlikeToInteger(value, firstByte);
+        ResultCode r = convertNumberlikeToInteger(firstByte);
+        if (r != ResultCode::APPROX_EXTREME)
+            return r;
+
+        if (firstByte == static_cast<std::uint8_t>(Encoding::SingleByteValue::INF))
+            value = maximumValue;
+
+        return r;
     }
 
 
     template<typename T>  // T: e.g. std::int32_t
-    static ResultCode getSignedInteger(T &value, const std::uint8_t *buffer, std::size_t size) {
+    static ResultCode getSignedInteger(T &value, const T minimumValue, const T maximumValue,
+                                       const std::uint8_t *buffer, std::size_t size) noexcept
+    {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
         typedef typename std::make_unsigned<T>::type U;
@@ -164,15 +169,15 @@ namespace dbor::impl {
 
             if (firstByte < 0x20) {
                 // non-negative
-                if (u > static_cast<U>(std::numeric_limits<T>::max())) {
-                    value = std::numeric_limits<T>::max();
+                if (u > static_cast<U>(maximumValue)) {
+                    value = maximumValue;
                     return ResultCode::APPROX_EXTREME;
                 }
                 value = static_cast<T>(u);
             } else {
                 // negative
-                if (u >= -static_cast<U>(std::numeric_limits<T>::min())) {
-                    value = std::numeric_limits<T>::min();
+                if (u >= -static_cast<U>(minimumValue)) {
+                    value = minimumValue;
                     return ResultCode::APPROX_EXTREME;
                 }
                 // T can represent -(u + 1)
@@ -195,13 +200,21 @@ namespace dbor::impl {
             return ResultCode::OK;
         }
 
-        return impl::convertNumberlikeToInteger(value, firstByte);
+        ResultCode r = convertNumberlikeToInteger(firstByte);
+        if (r != ResultCode::APPROX_EXTREME)
+            return r;
+
+        value =
+            firstByte == static_cast<std::uint8_t>(Encoding::SingleByteValue::MINUS_INF) ?
+            minimumValue :
+            maximumValue;
+        return r;;
     }
 
 
     template<typename T>  // T: e.g. std::uint8_t
     ResultCode getUnsignedIntegerFromBigger(T &value,
-                                            const std::uint8_t *buffer, std::size_t size)
+                                            const std::uint8_t *buffer, std::size_t size) noexcept
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(!std::numeric_limits<T>::is_signed, "");
@@ -212,13 +225,11 @@ namespace dbor::impl {
             std::uint64_t v;
         #endif
 
-        ResultCode e = getUnsignedInteger(v, buffer, size);
         static_assert(sizeof(value) <= sizeof(v), "");
-
-        if (v > std::numeric_limits<T>::max()) {
-            v = std::numeric_limits<T>::max();
-            e = ResultCode::APPROX_EXTREME;
-        }
+        ResultCode e = getUnsignedInteger(
+            v,
+            static_cast<decltype(v)>(std::numeric_limits<T>::max()),
+            buffer, size);
 
         value = v;
         return e;
@@ -227,7 +238,7 @@ namespace dbor::impl {
 
     template<typename T>  // T: e.g. std::int8_t
     ResultCode getSignedIntegerFromBigger(T &value,
-                                          const std::uint8_t *buffer, std::size_t size)
+                                          const std::uint8_t *buffer, std::size_t size) noexcept
     {
         static_assert(std::numeric_limits<T>::is_integer, "");
         static_assert(std::numeric_limits<T>::is_signed, "");
@@ -238,14 +249,11 @@ namespace dbor::impl {
             std::int64_t v;
         #endif
 
-        ResultCode e = getSignedInteger(v, buffer, size);
-        if (v > std::numeric_limits<T>::max()) {
-            v = std::numeric_limits<T>::max();
-            e = ResultCode::APPROX_EXTREME;
-        } else if (v < std::numeric_limits<T>::min()) {
-            v = std::numeric_limits<T>::min();
-            e = ResultCode::APPROX_EXTREME;
-        }
+        ResultCode e = getSignedInteger(
+            v,
+            static_cast<decltype(v)>(std::numeric_limits<T>::min()),
+            static_cast<decltype(v)>(std::numeric_limits<T>::max()),
+            buffer, size);
 
         value = v;
         return e;
@@ -268,13 +276,15 @@ ResultCode Value::get(std::uint32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
         return impl::getUnsignedIntegerFromBigger(value, buffer_, size_);
     #else
-        return impl::getUnsignedInteger(value, buffer_, size_);
+        return impl::getUnsignedInteger(
+            value, std::numeric_limits<std::uint32_t>::max(), buffer_, size_);
     #endif
 }
 
 
 ResultCode Value::get(std::uint64_t &value) const noexcept {
-    return impl::getUnsignedInteger(value, buffer_, size_);
+    return impl::getUnsignedInteger(
+        value, std::numeric_limits<std::uint64_t>::max(), buffer_, size_);
 }
 
 
@@ -292,13 +302,21 @@ ResultCode Value::get(std::int32_t &value) const noexcept {
     #if DBOR_HAS_FAST_64BIT_ARITH
         return impl::getSignedIntegerFromBigger(value, buffer_, size_);
     #else
-        return impl::getSignedInteger(value, buffer_, size_);
+        return impl::getSignedInteger(
+            value,
+            std::numeric_limits<std::int32_t>::min(),
+            std::numeric_limits<std::int32_t>::max(),
+            buffer_, size_);
     #endif
 }
 
 
 ResultCode Value::get(std::int64_t &value) const noexcept {
-    return impl::getSignedInteger(value, buffer_, size_);
+    return impl::getSignedInteger(
+        value,
+        std::numeric_limits<std::int64_t>::min(),
+        std::numeric_limits<std::int64_t>::max(),
+        buffer_, size_);
 }
 
 
