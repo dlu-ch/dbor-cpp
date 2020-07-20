@@ -256,9 +256,12 @@ ResultCode Value::get(std::int32_t &mant, std::int32_t &exp10) const noexcept {
     if (!isComplete_)
         return ResultCode::INCOMPLETE;
 
-    if (buffer_[0] < 0x40)
+    if (buffer_[0] < 0x40) {
          // IntegerValue(mant), treat like DecimalRationalValue(mant, 0)
-        return get(mant);
+        ResultCode r = get(mant);
+        // for ResultCode::APPROX_IMPRECISE: best approximation with given exp10
+        return r == ResultCode::APPROX_EXTREME ? ResultCode::APPROX_IMPRECISE : r;
+    }
 
     if (buffer_[0] < 0xD0)
         return ResultCode::INCOMPATIBLE;
@@ -306,31 +309,23 @@ ResultCode Value::get(std::int32_t &mant, std::int32_t &exp10) const noexcept {
 
     std::int32_t m;
     ResultCode r = impl::getSignedInteger(m, &buffer_[firstTokenSize], size_ - firstTokenSize);
+
     if (buffer_[0] & 8u) {
         // exp10 < 0
-        if (eAbs > -static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::min())) {
-            mant = 0;  // TODO is there an efficient way to approximate?
-            exp10 = std::numeric_limits<std::int32_t>::min();
-            r = ResultCode::APPROX_IMPRECISE;
-        } else {
-            mant = m;
+        if (eAbs <= -static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::min())) {
+            mant = m;  // best approximation for given exp10
             exp10 = -static_cast<std::int32_t>(eAbs);
             if (r == ResultCode::APPROX_EXTREME)
-                r = ResultCode::APPROX_IMPRECISE;  // TODO is there an efficient way to approximate?
-        }
+                r = ResultCode::APPROX_IMPRECISE;
+        } else
+            r = ResultCode::UNSUPPORTED;
     } else {
         // exp10 > 0
-        if (eAbs > static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::max())) {
-            mant =
-                m > 0 ?
-                std::numeric_limits<std::int32_t>::max() :
-                std::numeric_limits<std::int32_t>::min();
-            exp10 = std::numeric_limits<std::int32_t>::max();
-            r = ResultCode::APPROX_EXTREME;
-        } else {
+        if (eAbs <= static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::max())) {
             mant = m;
             exp10 = static_cast<std::int32_t>(eAbs);
-        }
+        } else
+            r = ResultCode::UNSUPPORTED;
     }
 
     return r;
@@ -381,16 +376,9 @@ ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
         return ResultCode::INCOMPLETE;
 
     std::size_t stringSize = size_ - sizeOfFirstToken;
-    const std::uint8_t *p = &buffer_[sizeOfFirstToken];
-    ResultCode r = ResultCode::OK;
+    if (stringSize > maxSize)
+        return ResultCode::RANGE;
 
-    if (stringSize > maxSize) {
-        // find beginning of truncated code point: is well-formed after truncation if it was before
-        stringSize = String::offsetOfLastCodepointIn(p, maxSize + 1);  // maxSize + 1 <= stringSize
-        stringSize = stringSize <= maxSize ? stringSize : maxSize;
-        r = ResultCode::APPROX_EXTREME;
-    }
-
-    value = String(p, stringSize);
-    return r;
+    value = String(&buffer_[sizeOfFirstToken], stringSize);
+    return ResultCode::OK;
 }

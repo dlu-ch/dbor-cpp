@@ -33,14 +33,15 @@ namespace dbor {
         RANGE            = 1u << 2u,
         NO_OBJECT        = 1u << 3u,
         INCOMPATIBLE     = 1u << 4u,
-        ILLFORMED        = 1u << 5u,
-        INCOMPLETE       = 1u << 6u,
+        UNSUPPORTED      = 1u << 5u,
+        ILLFORMED        = 1u << 6u,
+        INCOMPLETE       = 1u << 7u
     };
 
     // Set of ResultCode.
     enum class ResultCodeSet: std::underlying_type<ResultCode>::type {
         NONE = 0u,             // (set of "not ok" results is empty)
-        ALL = (1u << 7u) - 1u  // (set of all "not ok" results)
+        ALL = (1u << 8u) - 1u  // (set of all "not ok" results)
     };
 
 

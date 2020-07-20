@@ -827,7 +827,7 @@ static void testGetInt32Int32() {
     ASSERT_EQUAL(0, e);
 
     m = e = 7;
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
                  (ValueBuilder{0x3B, 0xE8, 0xFE, 0xFE, 0x7E}).value.get(m, e));
     ASSERT_EQUAL(INT32_MIN, m);
     ASSERT_EQUAL(0, e);
@@ -839,7 +839,7 @@ static void testGetInt32Int32() {
     ASSERT_EQUAL(0, e);
 
     m = e = 7;
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
                  (ValueBuilder{0x1B, 0xE8, 0xFE, 0xFE, 0x7E}).value.get(m, e));
     ASSERT_EQUAL(INT32_MAX, m);
     ASSERT_EQUAL(0, e);
@@ -894,38 +894,47 @@ static void testGetInt32Int32() {
     ASSERT_EQUAL(INT32_MIN, e);
 
     m = e = 7;
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,  // TODO is there a better way?
+    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
                  (ValueBuilder{
                     0xDB, 0xF7, 0xFE, 0xFE, 0x7E,
-                    0x1B, 0xE8, 0xFE, 0xFE, 0x7E
+                    0x1B, 0xE8, 0xFE, 0xFE, 0x7E  // too large
                  }).value.get(m, e));
     ASSERT_EQUAL(INT32_MAX, m);
     ASSERT_EQUAL(INT32_MIN, e);
 
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+    ASSERT_EQUAL(dbor::ResultCode::UNSUPPORTED,
                  (ValueBuilder{
-                    0xD7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xD7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // too large
                     0x20
                  }).value.get(m, e));
-    ASSERT_EQUAL(INT32_MIN, m);
-    ASSERT_EQUAL(INT32_MAX, e);
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
 
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+    m = e = 7;
+    ASSERT_EQUAL(dbor::ResultCode::UNSUPPORTED,
                  (ValueBuilder{
-                    0xDB, 0xF8, 0xFE, 0xFE, 0x7E,
+                    0xDB, 0xFF, 0xFF, 0xFF, 0xFF,  // exp10 too small
+                    0x1B, 0xFF, 0xFF, 0xFF, 0xFF
+                 }).value.get(m, e));
+    ASSERT_EQUAL(0, m);
+    ASSERT_EQUAL(0, e);
+
+    ASSERT_EQUAL(dbor::ResultCode::UNSUPPORTED,
+                 (ValueBuilder{
+                    0xDB, 0xF8, 0xFE, 0xFE, 0x7E,  // exp10 too small
                     0x1B, 0xE7, 0xFE, 0xFE, 0x7E
                  }).value.get(m, e));
     ASSERT_EQUAL(0, m);
-    ASSERT_EQUAL(INT32_MIN, e);
+    ASSERT_EQUAL(0, e);
 
     m = e = 7;
-    ASSERT_EQUAL(dbor::ResultCode::APPROX_IMPRECISE,
+    ASSERT_EQUAL(dbor::ResultCode::UNSUPPORTED,
                  (ValueBuilder{
-                    0xDF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                    0xDF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // too small
                     0x05
                  }).value.get(m, e));
     ASSERT_EQUAL(0, m);
-    ASSERT_EQUAL(INT32_MIN, e);
+    ASSERT_EQUAL(0, e);
 
     m = e = 7;
     ASSERT_EQUAL(dbor::ResultCode::INCOMPLETE, (ValueBuilder{0xDF, 0xFF}).value.get(m, e));
@@ -1077,33 +1086,8 @@ static void testGetUtf8String() {
         ASSERT_EQUAL(buffer + 1, s.buffer());
         ASSERT_EQUAL(10, s.size());
 
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 9));
-        ASSERT_EQUAL(buffer + 1, s.buffer());
-        ASSERT_EQUAL(7, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 8));
-        ASSERT_EQUAL(7, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 7));
-        ASSERT_EQUAL(7, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 6));
-        ASSERT_EQUAL(3, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 4));
-        ASSERT_EQUAL(3, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 2));
-        ASSERT_EQUAL(1, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 0));
+        ASSERT_EQUAL(dbor::ResultCode::RANGE, dbor::Value(buffer, sizeof(buffer)).get(s, 9));
+        ASSERT_EQUAL(nullptr, s.buffer());
         ASSERT_EQUAL(0, s.size());
     }
 
@@ -1121,21 +1105,9 @@ static void testGetUtf8String() {
         ASSERT_EQUAL(8, s.size());
         ASSERT_EQUAL(dbor::ResultCode::ILLFORMED, s.check());
 
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
+        ASSERT_EQUAL(dbor::ResultCode::RANGE,
                      dbor::Value(buffer, sizeof(buffer)).get(s, 7));
-        ASSERT_EQUAL(buffer + 1, s.buffer());
-        ASSERT_EQUAL(4, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 3));
-        ASSERT_EQUAL(3, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 3));
-        ASSERT_EQUAL(3, s.size());
-
-        ASSERT_EQUAL(dbor::ResultCode::APPROX_EXTREME,
-                     dbor::Value(buffer, sizeof(buffer)).get(s, 2));
+        ASSERT_EQUAL(nullptr, s.buffer());
         ASSERT_EQUAL(0, s.size());
     }
 

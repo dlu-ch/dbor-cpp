@@ -110,7 +110,7 @@ static void testSetOperations() {
 static void testSetIteration() {
     typedef std::underlying_type<dbor::ResultCode>::type U;
 
-    static constexpr std::size_t NUMBER_OF_NONOK_RESULTCODES = 7;
+    static constexpr std::size_t NUMBER_OF_NONOK_RESULTCODES = 8;
     static_assert(static_cast<U>(dbor::ResultCodeSet::ALL) > 0, "");
     static_assert(static_cast<U>(dbor::ResultCodeSet::ALL)
                   == (1U << NUMBER_OF_NONOK_RESULTCODES) - 1, "");
