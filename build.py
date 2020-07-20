@@ -20,6 +20,8 @@ import dlb.ex
 import dlb_contrib.gcc
 import dlb_contrib.iso6429
 import dlb_contrib.exctrace
+import build.doxypress
+
 
 dlb_contrib.exctrace.enable_compact_with_cwd(
     involved_line_limit=3,
@@ -88,10 +90,6 @@ def build_with_definitions(source_directory, test_directory, output_directory, c
 
 
 with dlb.ex.Context():
-    source_directory = Path('src/')
-    test_directory = Path('test/')
-    output_directory = Path('build/out/')
-
     class OptimizingCompiler(Compiler):
         def get_compile_arguments(self) -> Iterable[Union[str, dlb.fs.Path, dlb.fs.Path.Native]]:
             return super().get_compile_arguments() + ['-O3']
@@ -108,17 +106,31 @@ with dlb.ex.Context():
         ('64b',     Compiler64b)
     ])
 
+    source_directory = Path('src/')
+    output_directory = Path('build/out/')
+
     for configuration, compiler in compiler_by_configuration.items():
         with dlb.di.Cluster(f'configuration {configuration!r}'):
             application_file = build_with_definitions(
-                source_directory=Path('src/'),
+                source_directory=source_directory,
                 test_directory=Path('test/'),
-                output_directory=Path('build/out/') / f'{configuration}/',
+                output_directory=output_directory / f'c/{configuration}/',
                 compiler=compiler
             )
             with dlb.di.Cluster(f'test'):
                 dlb.ex.Context.active.helper[Application.EXECUTABLE] = application_file
                 Application().start(force_redo=True)
 
+    class DoxyPress(build.doxypress.DoxyPress):
+        TEXTUAL_REPLACEMENTS = {'project_version': f'version ?'}  # TODO from Git
+
+    if dlb.ex.Context.active.helper.get(DoxyPress.EXECUTABLE):  # DoxyPress installed?
+        DoxyPress(
+            project_template_file='doc/doxypress.json',
+            source_directories=[source_directory],
+            output_directory=output_directory / 'doxypress/'
+        ).start(force_redo=True)
+    else:
+        dlb.di.inform(f'skip documentation compilation because DoxyPress not present', level=dlb.di.WARNING)
 
 dlb.di.inform(f'complete (all tests passed)')

@@ -10,20 +10,17 @@
 
 namespace dbor {
 
-    // Result code       Result object (e.g. decoded value in target type)
-    // --------------    ---------------------------------------------------------------------------
-    //
-    // OK                object (exactly)
-    //
-    // APPROX_IMPRECISE  representable approximation of object (for NumberValue: rounded towards 0)
-    // APPROX_EXTREME    minimum or maximum of representable objects because object outside
-    //
-    // RANGE             -
-    // NO_OBJECT         -
-    // INCOMPATIBLE      -
-    // ILLFORMED         -
-    // INCOMPLETE        -
-    //
+    /**
+     * \brief Code of the result of an operation involving a DBOR value.
+     *
+     * Result codes can be combined to \c ResultCodeSet with the << operator.
+     *
+     * Example:
+     * \code
+     * ResultCode::NO_OBJECT << ResultCode::INCOMPATIBLE
+     * \endcode
+     * is a \c ResultCodeSet with the members ResultCode::NO_OBJECT and ResultCode::INCOMPATIBLE.
+     */
     enum class ResultCode: std::uint_fast8_t {  // the higher the value the more severe
         OK               = 0u,
 
@@ -38,36 +35,35 @@ namespace dbor {
         INCOMPLETE       = 1u << 7u
     };
 
-    // Set of ResultCode.
+    /**
+     * \brief Set of results from \c ResultCode other than ResultCode::OK.
+     * Use leastSevereIn() to iterate over the members of the set.
+     */
     enum class ResultCodeSet: std::underlying_type<ResultCode>::type {
-        NONE = 0u,             // (set of "not ok" results is empty)
-        ALL = (1u << 8u) - 1u  // (set of all "not ok" results)
+        NONE = 0u,             ///< set of "not ok" results is empty
+        ALL = (1u << 8u) - 1u  ///< set of all "not ok" results
     };
 
 
     // Beware: order of evaluation is unspecified for function calls and most operators.
-    // Exceptions: <<, >>, ||, &&, comma, compound assignment operators ad some others.
+    // Exceptions: <<, >>, ||, &&, comma, compound assignment operators and some others.
     //
     // For the following operators, every value computation and side-effect of left
     // is sequenced before right.
 
-    // Set union: return all "not ok" results included in left or in right.
     constexpr ResultCodeSet operator<<(ResultCode left, ResultCode right) noexcept;
     constexpr ResultCodeSet operator<<(ResultCodeSet left, ResultCode right) noexcept;
     constexpr ResultCodeSet operator<<(ResultCode left, ResultCodeSet right) noexcept;
     constexpr ResultCodeSet operator<<(ResultCodeSet left, ResultCodeSet right) noexcept;
 
-    // Set union: include in left all "not ok" results included in right.
     ResultCodeSet &operator<<=(ResultCodeSet &left, ResultCode right) noexcept;
     ResultCodeSet &operator<<=(ResultCodeSet &left, ResultCodeSet right) noexcept;
 
-    // Set intersection: exclude in left all "not ok" results not included in right.
-    ResultCode operator&=(ResultCode &left, ResultCode right) noexcept;
-    ResultCode operator&=(ResultCode &left, ResultCodeSet right) noexcept;
+    ResultCodeSet operator&=(ResultCodeSet &left, ResultCode right) noexcept;
+    ResultCodeSet operator&=(ResultCodeSet &left, ResultCodeSet right) noexcept;
 
-    // Symmetric set difference: exclude in left all "not ok" results included in right.
-    ResultCode &operator-=(ResultCode &left, ResultCode right) noexcept;
-    ResultCode &operator-=(ResultCode &left, ResultCodeSet right) noexcept;
+    ResultCodeSet &operator-=(ResultCodeSet &left, ResultCode right) noexcept;
+    ResultCodeSet &operator-=(ResultCodeSet &left, ResultCodeSet right) noexcept;
 
     // = ResultCode::OK?
     constexpr bool isOk(ResultCode resultCode) noexcept;
@@ -83,9 +79,6 @@ namespace dbor {
     constexpr bool isApprox(ResultCode resultCode) noexcept;
     constexpr bool isApprox(ResultCodeSet resultCodes) noexcept;
 
-    // Of all "not ok" results in resultCodes that are included in ResultCode::ALL, return the
-    // one with the lowest value.
-    // Use this to iterate over "not ok" results.
     constexpr ResultCode leastSevereIn(ResultCodeSet resultCodes) noexcept;
 
 }
@@ -95,50 +88,60 @@ namespace dbor {
 
 namespace dbor {
 
+    /** \brief Set union: return all "not ok" results included in left or in right. */
     inline constexpr ResultCodeSet operator<<(ResultCodeSet left, ResultCodeSet right) noexcept {
         typedef std::underlying_type<ResultCode>::type U;
         return static_cast<ResultCodeSet>(static_cast<U>(left) | static_cast<U>(right));
     }
 
+    /** \copydoc operator<<(ResultCodeSet, ResultCodeSet) */
     inline constexpr ResultCodeSet operator<<(ResultCode left, ResultCode right) noexcept {
         return static_cast<ResultCodeSet>(left) << static_cast<ResultCodeSet>(right);
     }
 
+    /** \copydoc operator<<(ResultCodeSet, ResultCodeSet) */
     inline constexpr ResultCodeSet operator<<(ResultCodeSet left, ResultCode right) noexcept {
         return left << static_cast<ResultCodeSet>(right);
     }
 
+    /** \copydoc operator<<(ResultCodeSet, ResultCodeSet) */
     inline constexpr ResultCodeSet operator<<(ResultCode left, ResultCodeSet right) noexcept {
         return static_cast<ResultCodeSet>(left) << right;
     }
 
+    /** \brief Set union: include in left all "not ok" results included in right. */
     inline ResultCodeSet &operator<<=(ResultCodeSet &left, ResultCode right) noexcept {
         left = left << right;
         return left;
     }
 
+    /** \copydoc operator<<=(ResultCodeSet &, ResultCode) */
     inline ResultCodeSet &operator<<=(ResultCodeSet &left, ResultCodeSet right) noexcept {
         left = left << right;
         return left;
     }
 
+    /** \brief Set intersection: exclude in left all "not ok" results not included in right. */
     inline ResultCodeSet operator&=(ResultCodeSet &left, ResultCodeSet right) noexcept {
         typedef std::underlying_type<ResultCode>::type U;
         left = static_cast<ResultCodeSet>(static_cast<U>(left) & static_cast<U>(right));
         return left;
     }
 
+    /** \copydoc operator&=(ResultCodeSet &, ResultCodeSet) */
     inline ResultCodeSet operator&=(ResultCodeSet &left, ResultCode right) noexcept {
         left &= static_cast<ResultCodeSet>(right);
         return left;
     }
 
+    /** \brief Symmetric set difference: exclude in left all "not ok" results included in right. */
     inline ResultCodeSet &operator-=(ResultCodeSet &left, ResultCodeSet right) noexcept {
         typedef std::underlying_type<ResultCode>::type U;
         left = static_cast<ResultCodeSet>(static_cast<U>(left) & ~static_cast<U>(right));
         return left;
     }
 
+    /** \copydoc operator-=(ResultCodeSet &, ResultCodeSet) */
     inline ResultCodeSet &operator-=(ResultCodeSet &left, ResultCode right) noexcept {
         left -= static_cast<ResultCodeSet>(right);
         return left;
@@ -182,6 +185,11 @@ namespace dbor {
         return isApprox(static_cast<ResultCodeSet>(resultCode));
     }
 
+    /**
+     * \brief Of all "not ok" results in resultCodes that are included in ResultCode::ALL,
+     * return theone with the lowest value.
+     * Use this to iterate over "not ok" results.
+     */
     inline constexpr ResultCode leastSevereIn(ResultCodeSet resultCodes) noexcept {
         typedef std::underlying_type<ResultCode>::type U;
         return static_cast<ResultCode>(static_cast<U>(resultCodes) & -static_cast<U>(resultCodes));

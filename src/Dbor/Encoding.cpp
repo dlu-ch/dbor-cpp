@@ -204,7 +204,7 @@ std::uint32_t Encoding::convertBinaryRational64ToBinary32(std::uint64_t value,
                                                           int &absDir) noexcept
 {
     // Returns value as IEEE-754:2008 binary32 (1 sign bit, 8 exponent bits, 23 mantissa bits)
-    // that represents the same number as 'value'.
+    // that represents the same number as 'value' if possible.
     // 'value' like IEEE-754:2008 double precision (1 sign bit, 11 exponent bits, 52 mantissa bits),
     // but maximum value of exponent does not have special meaning (never NaN, or +/-Infinity).
     //

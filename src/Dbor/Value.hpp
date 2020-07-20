@@ -10,6 +10,67 @@
 
 namespace dbor {
 
+    /**
+     * \brief DBOR value (well-formed, ill-formed or incomplete) in a non-empty immutable
+     * byte buffer or an incomplete value of zero size in an empty buffer.
+     *
+     * Such a value can be \em complete or \em incomplete.
+     * It is complete if and only if the assigned buffer is long enough to determine type and
+     * size of the value and has the determined size of the value.
+     * A complete value can be \em well-formed or \em ill-formed.
+     *
+     * Example:
+     * \code
+     * std::uint8_t buffer[] = {
+     *     0xC8, 0x00,  // BinaryRationalValue representing 0.125
+     *     0x07         // IntegerValue(7)
+     * };
+     * dbor::Value value(buffer, sizeof(buffer));
+     *     // value.buffer() is buffer
+     *     // value.size() is 2
+     *     // value.isComplete() is true
+     *
+     * dbor::Value incompleteValue(buffer, 1u);
+     *     // value.buffer() is buffer
+     *     // value.size() is 1
+     *     // value.isComplete() is false
+     * \endcode
+     *
+     * The \c get(...) methods decode the object represented by the assigned buffer into
+     * ..., if possible. The result code returned by any of the \c get() methods has the following
+     * meaning with respect to ...:
+     *
+     *   Result code      | Result object represented by parameters ... of get(...)
+     *   -----------------|-----------------------------------------------------------------------------------------------------------------
+     *   OK               | same as object (exactly)
+     *   APPROX_IMPRECISE | representable approximation of object inside range of representable objects (for NumberValue: rounded towards 0)
+     *   APPROX_EXTREME   | minimum or maximum of representable objects because object outside
+     *   RANGE            | default for target type (0, empty, NaN, ...)
+     *   NO_OBJECT        | default for target type (0, empty, NaN, ...)
+     *   INCOMPATIBLE     | default for target type (0, empty, NaN, ...)
+     *   ILLFORMED        | default for target type (0, empty, NaN, ...)
+     *   INCOMPLETE       | default for target type (0, empty, NaN, ...)
+     *
+     * Note that result codes can be combined with the << operator to a \c ResultCodeSet.
+     *
+     * Use \c ValueBlock to decode multiple values like this:
+     * \code
+     *   std::uint8_t a;
+     *   dbor::String b;
+     *   std::size_t bLength;
+     *   float c;
+     *
+     *   dbor::ValueBlock values(...);
+     *   auto iter = values.begin();  // iterates over values (*iter is a dbor::Value)
+     *   dbor::ResultCodeSet results =
+     *              iter->get(a)
+     *       << (++iter)->get(b) << b.check(bLength, 0x0020, 0xFFFF)
+     *       << (++iter)->get(c);
+     *
+     *   if (isOk(results))
+     *       ...  // use a, b, c
+     * \endcode
+     */
     class Value {
     public:
         Value() noexcept;  // incomplete with size() = 0
@@ -41,9 +102,6 @@ namespace dbor {
         ResultCode get(std::int32_t &mant, std::int32_t &exp10) const noexcept;
 
         ResultCode get(const std::uint8_t *&bytes, std::size_t &size) const noexcept;
-
-        // ResultCode::OK does not mean that this value is a well-formed Utf8StringValue.
-        // Use string.check() or string.getXXX() in addition.
         ResultCode get(String &value, std::size_t maxSize) const noexcept;
 
     protected:
@@ -67,6 +125,7 @@ inline std::size_t dbor::Value::size() const noexcept {
 }
 
 
+/** \brief Is a non-empty buffer assigned containing a complete value? */
 inline bool dbor::Value::isComplete() const noexcept {
     return isComplete_;
 }

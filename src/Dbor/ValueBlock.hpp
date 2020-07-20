@@ -10,6 +10,16 @@
 
 namespace dbor {
 
+    /**
+     * \brief DBOR value block in an empty or non-empty buffer.
+     *
+     * Supports forward iteration over values:
+     * \code
+     * const std::uint8_t buffer[] = {0xFF, 12, 0xFE};
+     * for (const dbor::Value &v: dbor::ValueBlock(buffer, sizeof(buffer)))
+     *     ...
+     * \endcode
+     */
     class ValueBlock {
     public:
         class Iterator;

@@ -1,0 +1,44 @@
+{
+    "doxypress-format": 1,
+
+    "project": {
+        "project-brief": "DBOR encoder and decoder for C++:2011",
+        "project-name": "dbor-c++",
+        "project-version": ${{project_version}}
+    },
+
+    "input": {
+        "input-encoding": "UTF-8",
+        "input-source": ${{source_directories}},
+        "input-patterns": ["*.cpp", "*.hpp"],
+        "input-recursive": true,
+
+        "markdown": true,
+        "tab-size": 4
+    },
+
+    "configuration": {
+        "extract-all": true,
+        "extract-local-classes": false,
+        "extract-anon-namespaces": false,
+        "extract-local-methods": false,
+        "extract-package": false,
+        "extract-private": false,
+        "extract-static": false,
+
+        "use-mathjax": true,
+
+        "quiet": true,
+        "warn-undoc": false
+    },
+
+    "output": {
+        "output-dir": ${{output_directory}},
+        "strip-from-inc-path": ${{source_directories}},
+        "strip-from-path": ${{source_directories}},
+        "optimize-cplus": true,
+        "output-language": "English",
+        "force-local-includes": true,
+        "full-path-names": true
+    }
+}

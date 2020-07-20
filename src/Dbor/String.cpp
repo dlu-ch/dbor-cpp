@@ -10,6 +10,11 @@
 using namespace dbor;
 
 
+/**
+ * \brief Returns the number of byte of the UTF-8 encoded code point \c codePoint
+ * or 0 if it is not a valid code point.
+ * A code point if valid if and only if it is in the range 0x0000 .. 0xD7FF or 0xE000 .. 0x10FFFF.
+ */
 std::size_t String::sizeOfUtf8ForCodepoint(CodePoint codePoint) noexcept {
     if (codePoint < 0x80)
         return 1;
@@ -26,6 +31,21 @@ std::size_t String::sizeOfUtf8ForCodepoint(CodePoint codePoint) noexcept {
 }
 
 
+/**
+ * \brief Returns the first well-formed UTF-8 encoded code point in the buffer
+ * or \c INVALID_CODEPOINT if none (not well-formed or buffer empty).
+ *
+ * The buffer is considered empty if and only if \c p = \c nullptr or \c capacity = 0.
+ *
+ * \param[in] p
+ *   Pointer to the first byte of the buffer or \c nullptr.
+ * \param[in] capacity
+ *   Size of the buffer in byte.
+ * \param[out] size
+ *   0 if buffer empty and in the range 1 .. min(4, \c capacity) otherwise.
+ * \return
+ *   Valid code point or \c INVALID_CODEPOINT
+ */
 String::CodePoint String::firstCodepointIn(const std::uint8_t *p, std::size_t capacity,
                                            std::size_t &size) noexcept
 {
@@ -89,9 +109,12 @@ String::CodePoint String::firstCodepointInNonEmpty(const std::uint8_t *p, std::s
 }
 
 
-std::size_t String::offsetOfLastCodepointIn(const std::uint8_t *p,
-                                            std::size_t capacity) noexcept
-{
+/**
+ * \brief Returns the offset of the beginning of the last potential UTF-8 encoded code point in the
+ * buffer.
+ * \return 0 if empty and value in max(0, \c capacity - 3) .. \c capacity - 1 otherwise.
+ */
+std::size_t String::offsetOfLastCodepointIn(const std::uint8_t *p, std::size_t capacity) noexcept {
     if (!p || !capacity)
         return 0;
 
@@ -106,6 +129,9 @@ std::size_t String::offsetOfLastCodepointIn(const std::uint8_t *p,
 }
 
 
+/**
+ * \brief Assigns an empty buffer.
+ */
 String::String() noexcept
     : buffer_(nullptr)
     , size_(0)
@@ -113,6 +139,10 @@ String::String() noexcept
 }
 
 
+/**
+ * \brief Assigns an empty or non-empty buffer without owning it.
+ * The buffer must remain unchanged as long as this instance exists.
+ */
 String::String(const uint8_t *buffer, std::size_t size) noexcept
     : buffer_(size ? buffer : nullptr)
     , size_(buffer ? size : 0)
@@ -120,6 +150,23 @@ String::String(const uint8_t *buffer, std::size_t size) noexcept
 }
 
 
+/**
+ * \brief Gets the assigned buffer as ASCII string if it is empty or contains a well-formed UTF-8
+ * encoded Unicode string of (printable) ASCII characters only.
+ *
+ * \param[in] printableOnly
+ *   Accept only printable ASCII characters?
+ * \param[out] buffer
+ *   Pointer to non-empty ASCII string (not necessarily NUL terminated) or \c nullptr.
+ *   If not \c nullptr, \c p[0] .. \c p[size - 1] are ASCII characters with characters code
+ *   in the range 0x20 .. 0x7E if \c printableOnly is \c true and in the range 0x00 .. 0x7F
+ *   otherwise.
+ * \param[out] size Size of ASCII string or 0.
+ * \return
+ *   ResultCode::OK if well-formed and all code points in the requested range,
+ *   ResultCode::RANGE if well-formed and @em not all code points in the requested range,
+ *   ResultCode::ILLFORMED if ill-formed.
+ */
 ResultCode String::getAscii(const char *&buffer, std::size_t &size,
                             bool printableOnly) const noexcept
 {
@@ -148,6 +195,22 @@ ResultCode String::getAscii(const char *&buffer, std::size_t &size,
 }
 
 
+/**
+ * \brief Gets the assigned buffer as ASCII string if it is empty or contains a well-formed UTF-8
+ * encoded Unicode string of code points in the specified range only.
+ *
+ * \param[in] minCodePoint Minimum accepted code point.
+ * \param[in] maxCodePoint Maximum accepted code point.
+ * \param[out] buffer
+ *   Pointer to non-empty ASCII string (not necessarily NUL terminated) or \c nullptr.
+ *   If not \c nullptr, \c p[0] .. \c p[size - 1] is a well-formed UTF-8 string of valid
+ *   code points in the range \c minCodePoint .. \c maxCodePoint.
+ * \param[out] size Size of ASCII string or 0.
+ * \return
+ *   ResultCode::OK if well-formed and all code points in the requested range,
+ *   ResultCode::RANGE if well-formed and @em not all code points in the requested range,
+ *   ResultCode::ILLFORMED if ill-formed.
+ */
 ResultCode String::getUtf8(const std::uint8_t *&buffer, std::size_t &size,
                            CodePoint minCodePoint, CodePoint maxCodePoint) const noexcept
 {
@@ -215,6 +278,17 @@ ResultCode String::checkNonEmpty(std::size_t &count,
 }
 
 
+/**
+ * \brief Checks if the assigned buffer is empty or contains a well-formed UTF-8 encoded Unicode
+ * string and returns information on the code points in the Unicode string.
+ *
+ * \param[out] count Number of codepoints in the buffer.
+ * \param[out] minCodePoint
+ *   Minimum code point if buffer if non-empty and valid and \c INVALID_CODEPOINT otherwise.
+ * \param[out] maxCodePoint
+ *   Maximum code point if buffer if non-empty and valid and \c INVALID_CODEPOINT otherwise.
+ * \return \c ResultCode::OK if empty or well-formed and \c ResultCode::ILLFORMED otherwise
+ */
 ResultCode String::check(std::size_t &count,
                          CodePoint &minCodePoint, CodePoint &maxCodePoint) const noexcept
 {
@@ -229,6 +303,12 @@ ResultCode String::check(std::size_t &count,
 }
 
 
+/**
+ * \brief Checks if the assigned buffer is empty or contains a well-formed UTF-8 encoded Unicode
+ * string.
+ *
+ * \return \c ResultCode::OK if empty or well-formed and \c ResultCode::ILLFORMED otherwise
+ */
 ResultCode String::check() const noexcept {
     std::size_t count;
     CodePoint minCodePoint, maxCodePoint;

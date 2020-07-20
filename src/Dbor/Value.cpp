@@ -22,6 +22,10 @@ namespace dbor::impl {
 using namespace dbor;
 
 
+/**
+ * Assigns an incomplete value of zero size in an empty buffer.
+ * All \c get() methods will fail with ResultCode::INCOMPLETE.
+ */
 Value::Value() noexcept
     : buffer_(nullptr)
     , size_(0)
@@ -30,6 +34,23 @@ Value::Value() noexcept
 }
 
 
+/**
+ * Assigns the first value in the non-zero buffer, without owning it, or
+ * an incomplete value of zero size if the buffer is empty.
+ *
+ * If the buffer is not empty and \c buffer[0] .. \c buffer[n - 1] is a complete (well-formed or
+ * ill-formed) DBOR value with n <= \c capacity, \c size() will be the size of this value
+ * and \c isComplete() will be \c true.
+ *
+ * If the buffer is not empty and \c buffer[0] .. \c buffer[capacity - 1] does not starts with
+ * a complete (well-formed or ill-formed) DBOR value, \c size() will be \c capacity
+ * and \c isComplete() will be \c false.
+ *
+ * If the buffer is empty, \c size() will 0 and \c isComplete() will be \c false.
+ *
+ * The constructed instance does not own the buffer. As long as the instance exists, the assigned
+ * buffer must not change.
+ */
 Value::Value(const uint8_t *buffer, std::size_t capacity) noexcept {
     if (buffer && capacity) {
         buffer_ = buffer;
@@ -72,46 +93,117 @@ bool Value::isContainer() const noexcept {
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::uint8_t &value) const noexcept {
     return impl::getUnsignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::uint16_t &value) const noexcept {
     return impl::getUnsignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::uint32_t &value) const noexcept {
     return impl::getUnsignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::uint64_t &value) const noexcept {
     return impl::getUnsignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::int8_t &value) const noexcept {
     return impl::getSignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::int16_t &value) const noexcept {
     return impl::getSignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \copybrief get(std::int64_t &) const
+ * \sa get(std::int64_t &) const
+ */
 ResultCode Value::get(std::int32_t &value) const noexcept {
     return impl::getSignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \brief Decodes the first complete DBOR value in the assigned buffer into @c value.
+ *
+ * If the assigned buffer is non-empty and starts with a complete DBOR value:
+ *
+ *   DBOR value (complete)                                      | Return value                  | @c value
+ *   -----------------------------------------------------------|-------------------------------|--------
+ *   IntegerValue(\f$v\f$) with \f$v_{min} \le v \le v_{max}\f$ | ResultCode::OK                | \f$v\f$
+ *   MinusZeroValue()                                           | ResultCode::APPROX_IMPRECISE  | 0
+ *   IntegerValue(\f$v\f$) with \f$v < v_{min}\f$               | ResultCode::APPROX_EXTREME    | \f$v_{min}\f$
+ *   IntegerValue(\f$v\f$) with \f$v > v_{max}\f$               | ResultCode::APPROX_EXTREME    | \f$v_{max}\f$
+ *   MinusInfinityValue()                                       | ResultCode::APPROX_EXTREME    | \f$v_{min}\f$
+ *   InfinityValue()                                            | ResultCode::APPROX_EXTREME    | \f$v_{max}\f$
+ *   NoneValue()                                                | ResultCode::NO_OBJECT         | 0
+ *   other                                                      | ResultCode::INCOMPATIBLE      | 0
+ *
+ * Otherwise: Returns ResultCode::INCOMPLETE and @c value = 0.
+ *
+ * \f$v_{min}\f$, \f$v_{max}\f$: Minimum, maximum value representable by @c value,
+ */
 ResultCode Value::get(std::int64_t &value) const noexcept {
     return impl::getSignedInteger(value, buffer_, size_);
 }
 
 
+/**
+ * \brief Decodes the first complete DBOR value in the assigned buffer into @c value.
+ *
+ * If the assigned buffer is non-empty and starts with a complete DBOR value:
+ *
+ *   DBOR value (complete)                                                          | Return value                  | @c value
+ *   -------------------------------------------------------------------------------|-------------------------------|----------
+ *   MinusInfinityValue()                                                           | ResultCode::OK                | \f$-\infty\f$
+ *   IntegerValue(0)                                                                | ResultCode::OK                | 0
+ *   MinusZeroValue()                                                               | ResultCode::OK                | -0
+ *   BinaryRationalValue, representing \f$v\f$ with \f$v_{min} \le v \le v_{max}\f$ | ResultCode::OK                | \f$v\f$
+ *   InfinityValue()                                                                | ResultCode::OK                | \f$\infty\f$
+ *   BinaryRationalValue, representing \f$v\f$ with \f$v_{min} \le v \le v_{max}\f$ | ResultCode::APPROX_IMPRECISE  | \f$v\f$ rounded towards 0
+ *   BinaryRationalValue, representing \f$v\f$ with \f$v < v_{min}\f$               | ResultCode::APPROX_EXTREME    | \f$-\infty\f$
+ *   BinaryRationalValue, representing \f$v\f$ with \f$v > v_{max}\f$               | ResultCode::APPROX_EXTREME    | \f$\infty\f$
+ *   BinaryRationalValue, illformed                                                 | ResultCode::ILLFORMED         | NaN
+ *   NoneValue()                                                                    | ResultCode::NO_OBJECT         | NaN
+ *   other                                                                          | ResultCode::INCOMPATIBLE      | NaN
+ *
+ * Otherwise: Returns ResultCode::INCOMPLETE and @c value = NaN.
+ *
+ * \f$v_{min}\f$, \f$v_{max}\f$: Minimum, maximum finite value representable by @c value,
+ */
 ResultCode Value::get(float &value) const noexcept {
     // C++:2011: "True if and only if the type adheres to IEC 559 standard.
     // International Electrotechnical Commission standard 559 is the same as IEEE 754."
@@ -179,6 +271,10 @@ ResultCode Value::get(float &value) const noexcept {
 }
 
 
+/**
+ * \copybrief get(float &) const
+ * \sa get(float &) const
+ */
 ResultCode Value::get(double &value) const noexcept {
     // C++:2011: "True if and only if the type adheres to IEC 559 standard.
     // International Electrotechnical Commission standard 559 is the same as IEEE 754."
@@ -247,6 +343,33 @@ ResultCode Value::get(double &value) const noexcept {
 }
 
 
+/**
+ * \brief Decodes the first complete DBOR value in the assigned buffer into @c mant and @c exp10,
+ * representing the number \f$\text{mant} \cdot 10^{\text{exp10}}\f$.
+ *
+ * If the assigned buffer is non-empty and starts with a complete DBOR value:
+ *
+ *   DBOR value (complete)                                                                            | Return value                  | @c mant       | @c exp10
+ *   -------------------------------------------------------------------------------------------------|-------------------------------|---------------|---------------
+ *   IntegerValue(\f$m\f$) with \f$m_{min} \le m \le m_{max}\f$                                       | ResultCode::OK                | \f$m\f$       | 0
+ *   DecimalRationalValue(m, e) with \f$m_{min} \le v \le m_{max}\f$, \f$e_{min} \le e \le e_{max}\f$ | ResultCode::OK                | \f$m\f$       | \f$e\f$
+ *   MinusZeroValue()                                                                                 | ResultCode::APPROX_IMPRECISE  | 0             | 0
+ *   IntegerValue(\f$m\f$) with \f$m < m_{min}\f$                                                     | ResultCode::APPROX_EXTREME    | \f$m_{min}\f$ | 0
+ *   IntegerValue(\f$m\f$) with \f$m > m_{max}\f$                                                     | ResultCode::APPROX_EXTREME    | \f$m_{max}\f$ | 0
+ *   DecimalRationalValue(\f$m, e\f$) with \f$m < m_{min}\f$, \f$e_{min} \le e \le e_{max}\f$         | ResultCode::APPROX_EXTREME    | \f$m_{min}\f$ | \f$e\f$
+ *   DecimalRationalValue(\f$m, e\f$) with \f$m > m_{max}\f$, \f$e_{min} \le e \le e_{max}\f$         | ResultCode::APPROX_EXTREME    | \f$m_{max}\f$ | \f$e\f$
+ *   MinusInfinityValue()                                                                             | ResultCode::APPROX_EXTREME    | \f$m_{min}\f$ | \f$e_{max}\f$
+ *   InfinityValue()                                                                                  | ResultCode::APPROX_EXTREME    | \f$m_{max}\f$ | \f$e_{max}\f$
+ *   DecimalRationalValue(\f$m, e\f$) with \f$e < e_{min}\f$ or \f$e > e_{max}\f$                     | ResultCode::UNSUPPORTED       | 0             | 0
+ *   DecimalRationalValue(\f$m, e\f$), ill-formed                                                     | ResultCode::ILLFORMED         | 0             | 0
+ *   NoneValue()                                                                                      | ResultCode::NO_OBJECT         | 0             | 0
+ *   other                                                                                            | ResultCode::INCOMPATIBLE      | 0             | 0
+ *
+ * Otherwise: Returns ResultCode::INCOMPLETE and @c mant = @c exp10 = 0.
+ *
+ * \f$m_{min}\f$, \f$m_{max}\f$: Minimum, maximum finite value representable by @c mant,
+ * \f$e_{min}\f$, \f$e_{max}\f$: Minimum, maximum finite value representable by @c exp10,
+ */
 ResultCode Value::get(std::int32_t &mant, std::int32_t &exp10) const noexcept {
     mant = 0;
     exp10 = 0;
@@ -332,6 +455,20 @@ ResultCode Value::get(std::int32_t &mant, std::int32_t &exp10) const noexcept {
 }
 
 
+/**
+ * \brief Decodes the first complete DBOR value in the assigned buffer into @c bytes and
+ * @c stringSize, representing a bytes string @c bytes[0] .. @c bytes[stringSize - 1].
+ *
+ * If the assigned buffer is non-empty and starts with a complete DBOR value:
+ *
+ *   DBOR value (complete)                   | Return value                  | @c bytes            | @c stringSize
+ *   ----------------------------------------|-------------------------------|---------------------|---------------
+ *   ByteStringValue(\f$b_1, \ldots, b_m\f$) | ResultCode::OK                | pointer to \$b_1\$  | \f$m\f$
+ *   NoneValue()                             | ResultCode::NO_OBJECT         | @c nullptr          | 0
+ *   other                                   | ResultCode::INCOMPATIBLE      | @c nullptr          | 0
+ *
+ * Otherwise: Returns ResultCode::INCOMPLETE and @c mant = @c nullptr, @c stringSize = 0.
+ */
 ResultCode Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const noexcept {
     bytes = nullptr;
     stringSize = 0;
@@ -356,6 +493,26 @@ ResultCode Value::get(const std::uint8_t *&bytes, std::size_t &stringSize) const
 }
 
 
+/**
+ * \brief Decodes the first complete DBOR value in the assigned buffer into @c value,
+ * representing an Unicode string of at most @c maxSize byte in UTF-8 encoding.
+ *
+ * If the assigned buffer is non-empty and starts with a complete DBOR value:
+ *
+ *   DBOR value (complete)                                                   | Return value             | @c value
+ *   ------------------------------------------------------------------------|--------------------------|----------------------------
+ *   Utf8StringValue(\f$b_1, \ldots, b_m\f$) with \f$m \le \text{maxSize}\f$ | ResultCode::OK           | String(&\f$b_1\f$, \f$m\f$)
+ *   Utf8StringValue(\f$b_1, \ldots, b_m\f$) with \f$m > \text{maxSize}\f$   | ResultCode::RANGE        | String()
+ *   NoneValue()                                                             | ResultCode::NO_OBJECT    | String()
+ *   other                                                                   | ResultCode::INCOMPATIBLE | String()
+ *
+ * Otherwise: Returns ResultCode::INCOMPLETE and @c value = String().
+ *
+ * Note:
+ * ResultCode::OK does not mean that this value is a well-formed Utf8StringValue.
+ * Use \link String::check() value.check() \endlink or
+ * \link String::getUtf8() value.getXXX() \endlink in addition.
+ */
 ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
     // maxSize limits the number of instructions for string.check()
 
