@@ -53,14 +53,14 @@ namespace dbor {
      *
      * Note that result codes can be combined with the << operator to a \c ResultCodeSet.
      *
-     * Use \c ValueBlock to decode multiple values like this:
+     * Use \c ValueSequence to decode multiple values like this:
      * \code
      *   std::uint8_t a;
      *   dbor::String b;
      *   std::size_t bLength;
      *   float c;
      *
-     *   dbor::ValueBlock values(...);
+     *   dbor::ValueSequence values(...);
      *   auto iter = values.begin();  // iterates over values (*iter is a dbor::Value)
      *   dbor::ResultCodeSet results =
      *              iter->get(a)

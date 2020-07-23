@@ -14,7 +14,7 @@ Application example:
     std::size_t bLength;
     float c;
 
-    dbor::ValueBlock values(...);
+    dbor::ValueSequence values(...);
     auto iter = values.begin();  // iterates over values (*iter is a dbor::Value)
     dbor::ResultCodeSet results =
                iter->get(a)

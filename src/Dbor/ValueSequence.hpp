@@ -2,8 +2,8 @@
 // dbor-c++ - C++ implementation of DBOR encoder and decoder
 // Copyright (C) 2020 Daniel Lutz <dlu-ch@users.noreply.github.com>
 
-#ifndef DBOR_VALUE_BLOCK_HPP_
-#define DBOR_VALUE_BLOCK_HPP_
+#ifndef DBOR_VALUE_SEQUENCE_HPP_
+#define DBOR_VALUE_SEQUENCE_HPP_
 
 #include <cstdint>
 #include "Dbor/Value.hpp"
@@ -16,17 +16,17 @@ namespace dbor {
      * Supports forward iteration over values:
      * \code
      * const std::uint8_t buffer[] = {0xFF, 12, 0xFE};
-     * for (const dbor::Value &v: dbor::ValueBlock(buffer, sizeof(buffer)))
+     * for (const dbor::Value &v: dbor::ValueSequence(buffer, sizeof(buffer)))
      *     ...
      * \endcode
      */
-    class ValueBlock {
+    class ValueSequence {
     public:
         class Iterator;
 
-        ValueBlock(const void *buffer, std::size_t capacity) noexcept;
-        ValueBlock(const ValueBlock &) noexcept = default;
-        ValueBlock &operator=(const ValueBlock &) noexcept = delete;
+        ValueSequence(const void *buffer, std::size_t capacity) noexcept;
+        ValueSequence(const ValueSequence &) noexcept = default;
+        ValueSequence &operator=(const ValueSequence &) noexcept = delete;
 
         const void *buffer() const noexcept;
         std::size_t capacity() const noexcept;
@@ -41,7 +41,7 @@ namespace dbor {
     };
 
 
-    class ValueBlock::Iterator {
+    class ValueSequence::Iterator {
     public:
         Iterator() noexcept;
         Iterator(const void *buffer, std::size_t capacity) noexcept;
@@ -68,66 +68,66 @@ namespace dbor {
 
 // Inline implementations ---
 
-inline dbor::ValueBlock::ValueBlock(const void *buffer, std::size_t capacity) noexcept
+inline dbor::ValueSequence::ValueSequence(const void *buffer, std::size_t capacity) noexcept
     : buffer_(buffer)
     , capacity_(capacity)
 {
 }
 
 
-inline const void *dbor::ValueBlock::buffer() const noexcept {
+inline const void *dbor::ValueSequence::buffer() const noexcept {
     return buffer_;
 }
 
 
-inline std::size_t dbor::ValueBlock::capacity() const noexcept {
+inline std::size_t dbor::ValueSequence::capacity() const noexcept {
     return capacity_;
 }
 
 
-inline dbor::ValueBlock::Iterator dbor::ValueBlock::begin() const noexcept {
-    return ValueBlock::Iterator(buffer_, capacity_);
+inline dbor::ValueSequence::Iterator dbor::ValueSequence::begin() const noexcept {
+    return ValueSequence::Iterator(buffer_, capacity_);
 }
 
 
-inline dbor::ValueBlock::Iterator dbor::ValueBlock::end() const noexcept {
-    return ValueBlock::Iterator();
+inline dbor::ValueSequence::Iterator dbor::ValueSequence::end() const noexcept {
+    return ValueSequence::Iterator();
 }
 
 
-inline bool dbor::ValueBlock::empty() const noexcept {
+inline bool dbor::ValueSequence::empty() const noexcept {
     return !(buffer_ && capacity_);
 }
 
 
-inline std::size_t dbor::ValueBlock::Iterator::remainingSize() const noexcept {
+inline std::size_t dbor::ValueSequence::Iterator::remainingSize() const noexcept {
     return remainingSize_;
 }
 
 
-inline bool dbor::ValueBlock::Iterator::operator!=(const Iterator &other) const noexcept {
+inline bool dbor::ValueSequence::Iterator::operator!=(const Iterator &other) const noexcept {
     return front_.buffer() != other.front_.buffer();
 }
 
 
-inline bool dbor::ValueBlock::Iterator::operator==(const Iterator &other) const noexcept {
+inline bool dbor::ValueSequence::Iterator::operator==(const Iterator &other) const noexcept {
     return !operator!=(other);
 }
 
 
-inline bool dbor::ValueBlock::Iterator::isAtEnd() const noexcept {
+inline bool dbor::ValueSequence::Iterator::isAtEnd() const noexcept {
     return !front_.buffer();
 }
 
 
-inline const dbor::Value &dbor::ValueBlock::Iterator::operator*() const noexcept {
+inline const dbor::Value &dbor::ValueSequence::Iterator::operator*() const noexcept {
     return front_;
 }
 
 
-inline const dbor::Value *dbor::ValueBlock::Iterator::operator->() const noexcept {
+inline const dbor::Value *dbor::ValueSequence::Iterator::operator->() const noexcept {
     return &front_;
 }
 
 
-#endif  // DBOR_VALUE_BLOCK_HPP_
+#endif  // DBOR_VALUE_SEQUENCE_HPP_

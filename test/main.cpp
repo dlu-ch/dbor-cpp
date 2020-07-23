@@ -6,7 +6,7 @@
 #include "TestString.hpp"
 #include "TestEncoding.hpp"
 #include "TestValue.hpp"
-#include "TestValueBlock.hpp"
+#include "TestValueSequence.hpp"
 
 int main() {
     // to avoid a dependency on a test library (like Google Test) to tests are very simple
@@ -16,7 +16,7 @@ int main() {
     testString();
     testEncoding();
     testValue();
-    testValueBlock();
+    testValueSequence();
 
     return 0;
 }
