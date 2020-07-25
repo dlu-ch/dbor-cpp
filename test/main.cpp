@@ -5,6 +5,7 @@
 #include "TestResultCode.hpp"
 #include "TestString.hpp"
 #include "TestEncoding.hpp"
+#include "TestSizeOf.hpp"
 #include "TestValue.hpp"
 #include "TestValueSequence.hpp"
 
@@ -15,6 +16,7 @@ int main() {
     testResultCode();
     testString();
     testEncoding();
+    testSizeOf();
     testValue();
     testValueSequence();
 
