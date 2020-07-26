@@ -539,3 +539,32 @@ ResultCode Value::get(String &value, std::size_t maxSize) const noexcept {
     value = String(&buffer_[sizeOfFirstToken], stringSize);
     return ResultCode::OK;
 }
+
+
+int Value::compareTo(const Value &other) const noexcept {
+    std::size_t n = size_;
+
+    if (!n || !other.size_)
+        return int(n > 0) - int(other.size_ > 0);
+
+    if (buffer_[0] < other.buffer_[0])
+        return -1;
+    if (buffer_[0] > other.buffer_[0])
+        return 1;
+
+    if (n < other.size_)
+        return -1;
+    if (n > other.size_)
+        return 1;
+
+    for (std::size_t i = n - 1u; i > 1; i--) {
+        if (buffer_[i] < other.buffer_[i])
+            return -1;
+        if (buffer_[i] > other.buffer_[i])
+            return 1;
+    }
+
+    if (isComplete_ == other.isComplete_)
+        return 0;
+    return isComplete_ ? 1 : -1;
+}

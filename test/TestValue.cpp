@@ -1213,6 +1213,33 @@ static void testIsXXXAreMutallyExclusive() {
 }
 
 
+static void testCompareTo() {
+    ASSERT_EQUAL(0, dbor::Value().compareTo(dbor::Value()));
+
+    ASSERT_EQUAL(-1, dbor::Value().compareTo(ValueBuilder{0x18, 0x00}.value));
+    ASSERT_EQUAL(1, ValueBuilder{0x00}.value.compareTo(dbor::Value()));
+
+    ASSERT_EQUAL(0, ValueBuilder{0x00}.value.compareTo(ValueBuilder{0x00}.value));
+    ASSERT_EQUAL(-1, ValueBuilder{0x00}.value.compareTo(ValueBuilder{0x1F}.value));
+    ASSERT_EQUAL(-1, ValueBuilder{0x00}.value.compareTo(ValueBuilder{0xFF}.value));
+    ASSERT_EQUAL(1, ValueBuilder{0xFF}.value.compareTo(ValueBuilder{0x00}.value));
+
+    ASSERT_EQUAL(0, (ValueBuilder{0x18, 0x00}.value.compareTo(ValueBuilder{0x18, 0x00}.value)));
+    ASSERT_EQUAL(-1, (ValueBuilder{0x18}.value.compareTo(ValueBuilder{0x18, 0x10}.value)));
+    ASSERT_EQUAL(1, (ValueBuilder{0x18, 0x00}.value.compareTo(ValueBuilder{0x18}.value)));
+
+    ASSERT_EQUAL(0,
+                 (ValueBuilder{0x19, 0x01, 0x00}.value.compareTo(
+                     ValueBuilder{0x19, 0x01, 0x00}.value)));
+    ASSERT_EQUAL(-1,
+                 (ValueBuilder{0x19, 0x00, 0x00}.value.compareTo(
+                     ValueBuilder{0x19, 0x00, 0x01}.value)));
+    ASSERT_EQUAL(1,
+                 (ValueBuilder{0x19, 0x00, 0x01}.value.compareTo(
+                     ValueBuilder{0x19, 0x01, 0x00}.value)));
+}
+
+
 void testValue() {
     testDefaultConstructedIsEmpty();
     testIsEmptyWithoutBuffer();
@@ -1242,4 +1269,6 @@ void testValue() {
     testIsString();
     testIsContainer();
     testIsXXXAreMutallyExclusive();
+
+    testCompareTo();
 }

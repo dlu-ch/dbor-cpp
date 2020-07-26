@@ -104,6 +104,22 @@ namespace dbor {
         ResultCode get(const std::uint8_t *&bytes, std::size_t &size) const noexcept;
         ResultCode get(String &value, std::size_t maxSize) const noexcept;
 
+        /**
+         * \brief Returns 0 if this and \c other are equal, -1 if this is < \c other and 1
+         * if this is > \c other when compared as (complete or incomplete) byte sequences.
+         *
+         * Of two otherwise equal values a, b with different isComplete(),
+         * the one with \c isComplete() = \false is smaller.
+         *
+         * This defines a strict total order on the set of all (well-formed, ill-formed or
+         * incomplete) DBOR value representable as Value instances, with \c Value() as its
+         * least element.
+         *
+         * If this and \c other are IntegerValue(\f$a\f$) and IntegerValue(\f$b\f$):
+         * Returns -1 if and only if \f$|a| < |b|\f$ and \f$a \cdot b \ge 0\f$.
+         */
+        int compareTo(const Value &other) const noexcept;
+
     protected:
         const uint8_t *buffer_;
         std::size_t size_;
